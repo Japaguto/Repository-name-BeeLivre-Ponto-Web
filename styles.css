@@ -110,10 +110,12 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
 
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .topbar h1 { font-size: 21px; }
+.dashboard-message { min-height: 0; margin: -8px 0 14px; }
 .section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .status-pill, .role-pill { padding: 7px 9px; border-radius: 999px; font-size: 10px; font-weight: 800; text-align: center; }
 .status-pill { color: var(--brown-700); background: var(--brown-100); }
 .role-pill { color: #665326; background: #f7efcf; }
+.today-date { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
 
 .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .metric { padding: 13px 8px; border-radius: 14px; background: var(--cream); text-align: center; }
@@ -155,6 +157,19 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
 .empty-state { display: flex; align-items: center; gap: 12px; color: var(--muted); }
 .empty-state span { font-size: 28px; }
 .empty-state p { margin: 0; font-size: 13px; line-height: 1.5; }
+.data-list { display: grid; gap: 10px; }
+.schedule-item, .history-item { padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: #fdfcfb; }
+.schedule-item h3, .history-item h3 { margin: 0; color: var(--brown-900); font-size: 15px; }
+.schedule-item__hours { margin: 6px 0; color: var(--ink); font-size: 15px; font-weight: 800; }
+.schedule-item__detail { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.history-item__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
+.history-item__status { padding: 5px 8px; border-radius: 999px; color: var(--brown-700); background: var(--brown-100); font-size: 10px; font-weight: 800; text-align: right; }
+.history-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.history-metric { padding: 8px 5px; border-radius: 10px; background: var(--cream); text-align: center; }
+.history-metric span { display: block; margin-bottom: 3px; color: var(--muted); font-size: 9px; text-transform: uppercase; }
+.history-metric strong { color: var(--brown-900); font-size: 13px; }
+.history-item__times { margin: 10px 0 0; color: var(--ink); font-size: 12px; }
+.history-item__real { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
 .manager-card { border: 1px dashed #cbb68c; }
 .qr-placeholder { display: grid; min-height: 180px; margin: 18px 0 14px; place-content: center; justify-items: center; border: 2px dashed #d4c3b4; border-radius: 18px; color: var(--brown-600); background: var(--cream); }
 .qr-placeholder span { margin-bottom: 7px; font-size: 48px; }

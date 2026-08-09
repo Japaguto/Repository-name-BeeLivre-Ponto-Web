@@ -9,6 +9,15 @@ const logoutButton = document.getElementById("logoutButton");
 const userName = document.getElementById("userName");
 const userProfile = document.getElementById("userProfile");
 const managerArea = document.getElementById("managerArea");
+const dashboardMessage = document.getElementById("dashboardMessage");
+const todayDate = document.getElementById("todayDate");
+const todayStatusBadge = document.getElementById("todayStatusBadge");
+const todayWorked = document.getElementById("todayWorked");
+const todayTeiji = document.getElementById("todayTeiji");
+const todayZangyo = document.getElementById("todayZangyo");
+const todaySituation = document.getElementById("todaySituation");
+const scheduleList = document.getElementById("scheduleList");
+const historyList = document.getElementById("historyList");
 const actionButtons = document.querySelectorAll("[data-action]");
 const readQrButton = document.getElementById("readQrButton");
 const scanStatus = document.getElementById("scanStatus");
@@ -30,6 +39,7 @@ const NETWORK_ERROR_MESSAGE = "Não foi possível conectar ao sistema. Tente nov
 let selectedAction = "";
 let scannerControls = null;
 let isAuthenticating = false;
+let dashboardRequestId = 0;
 
 async function postToApi(route, data) {
   const response = await fetch(`${API_URL}?api=${route}`, {
@@ -58,6 +68,174 @@ function clearUser() {
   userProfile.textContent = "";
   managerArea.hidden = true;
   managerMessage.textContent = "";
+}
+
+function valueOrDash(value) {
+  return value === null || value === undefined || String(value).trim() === "" ? "—" : String(value);
+}
+
+function createEmptyState(icon, message) {
+  const emptyState = document.createElement("div");
+  const iconElement = document.createElement("span");
+  const text = document.createElement("p");
+
+  emptyState.className = "empty-state";
+  iconElement.setAttribute("aria-hidden", "true");
+  iconElement.textContent = icon;
+  text.textContent = message;
+  emptyState.append(iconElement, text);
+  return emptyState;
+}
+
+function setDashboardLoading() {
+  dashboardMessage.textContent = "Carregando...";
+  dashboardMessage.className = "message dashboard-message";
+  todayDate.textContent = "";
+  todayStatusBadge.textContent = "Carregando...";
+  todayWorked.textContent = "Carregando...";
+  todayTeiji.textContent = "Carregando...";
+  todayZangyo.textContent = "Carregando...";
+  todaySituation.textContent = "Carregando...";
+  scheduleList.replaceChildren(createEmptyState("◷", "Carregando..."));
+  historyList.replaceChildren(createEmptyState("☷", "Carregando..."));
+}
+
+function renderToday(hoje) {
+  todayDate.textContent = valueOrDash(hoje?.data) === "—" ? "" : String(hoje.data);
+  todayWorked.textContent = valueOrDash(hoje?.trabalhado);
+  todayTeiji.textContent = valueOrDash(hoje?.teiji);
+  todayZangyo.textContent = valueOrDash(hoje?.zangyo);
+  todaySituation.textContent = valueOrDash(hoje?.situacao);
+  todayStatusBadge.textContent = valueOrDash(hoje?.situacao);
+}
+
+function renderSchedule(items) {
+  scheduleList.replaceChildren();
+
+  if (!Array.isArray(items) || items.length === 0) {
+    scheduleList.append(createEmptyState("◷", "Sem escala cadastrada para hoje."));
+    return;
+  }
+
+  items.forEach((item) => {
+    const card = document.createElement("article");
+    const position = document.createElement("h3");
+    const hours = document.createElement("p");
+
+    card.className = "schedule-item";
+    position.textContent = valueOrDash(item?.posicao);
+    hours.className = "schedule-item__hours";
+    hours.textContent = `${valueOrDash(item?.entrada)} – ${valueOrDash(item?.saida)}`;
+    card.append(position, hours);
+
+    if (item?.intervaloInicio || item?.intervaloFim) {
+      const interval = document.createElement("p");
+      interval.className = "schedule-item__detail";
+      interval.textContent = `Intervalo: ${valueOrDash(item.intervaloInicio)} – ${valueOrDash(item.intervaloFim)}`;
+      card.append(interval);
+    }
+
+    if (item?.nivel) {
+      const level = document.createElement("p");
+      level.className = "schedule-item__detail";
+      level.textContent = `Nível: ${item.nivel}`;
+      card.append(level);
+    }
+
+    scheduleList.append(card);
+  });
+}
+
+function createHistoryMetric(label, value) {
+  const metric = document.createElement("div");
+  const name = document.createElement("span");
+  const content = document.createElement("strong");
+
+  metric.className = "history-metric";
+  name.textContent = label;
+  content.textContent = valueOrDash(value);
+  metric.append(name, content);
+  return metric;
+}
+
+function renderHistory(items) {
+  historyList.replaceChildren();
+
+  if (!Array.isArray(items) || items.length === 0) {
+    historyList.append(createEmptyState("☷", "Nenhum registro de ponto ainda."));
+    return;
+  }
+
+  items.forEach((item) => {
+    const card = document.createElement("article");
+    const header = document.createElement("div");
+    const date = document.createElement("h3");
+    const status = document.createElement("span");
+    const metrics = document.createElement("div");
+
+    card.className = "history-item";
+    header.className = "history-item__header";
+    date.textContent = valueOrDash(item?.data || item?.dataKey);
+    status.className = "history-item__status";
+    status.textContent = valueOrDash(item?.situacao);
+    header.append(date, status);
+
+    metrics.className = "history-metrics";
+    metrics.append(
+      createHistoryMetric("Trabalhado", item?.trabalhado),
+      createHistoryMetric("TEIJI", item?.teiji),
+      createHistoryMetric("ZANGYO", item?.zangyo)
+    );
+    card.append(header, metrics);
+
+    if (item?.entradaAplicada || item?.saidaAplicada) {
+      const applied = document.createElement("p");
+      applied.className = "history-item__times";
+      applied.textContent = `Aplicado: ${valueOrDash(item.entradaAplicada)} – ${valueOrDash(item.saidaAplicada)}`;
+      card.append(applied);
+    }
+
+    const realDiffers =
+      (item?.entradaReal && item.entradaReal !== item.entradaAplicada) ||
+      (item?.saidaReal && item.saidaReal !== item.saidaAplicada);
+
+    if (realDiffers) {
+      const real = document.createElement("p");
+      real.className = "history-item__real";
+      real.textContent = `Horário real: ${valueOrDash(item.entradaReal)} – ${valueOrDash(item.saidaReal)}`;
+      card.append(real);
+    }
+
+    historyList.append(card);
+  });
+}
+
+async function loadDashboard(token) {
+  const requestId = ++dashboardRequestId;
+  setDashboardLoading();
+
+  try {
+    const result = await postToApi("dashboard", { token });
+    if (requestId !== dashboardRequestId) return;
+
+    if (!result?.ok) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      showLogin();
+      loginMessage.className = "message is-error";
+      loginMessage.textContent = "Sua sessão expirou. Entre novamente.";
+      return;
+    }
+
+    if (result.usuario) applyUser(result.usuario);
+    renderToday(result.hoje);
+    renderSchedule(result.escalaHoje);
+    renderHistory(result.historico);
+    dashboardMessage.textContent = "";
+  } catch {
+    if (requestId !== dashboardRequestId) return;
+    dashboardMessage.className = "message dashboard-message is-error";
+    dashboardMessage.textContent = "Não foi possível carregar os dados. Tente novamente.";
+  }
 }
 
 function showDashboard(usuario) {
@@ -109,6 +287,7 @@ loginForm.addEventListener("submit", async (event) => {
     pinInput.value = "";
     loginMessage.textContent = "";
     showDashboard(result.usuario);
+    loadDashboard(result.token);
   } catch {
     loginMessage.className = "message is-error";
     loginMessage.textContent = NETWORK_ERROR_MESSAGE;
@@ -119,6 +298,7 @@ loginForm.addEventListener("submit", async (event) => {
 
 logoutButton.addEventListener("click", async () => {
   const token = sessionStorage.getItem(TOKEN_KEY);
+  dashboardRequestId += 1;
   logoutButton.disabled = true;
 
   try {
@@ -155,6 +335,7 @@ async function restoreSession() {
 
     loginMessage.textContent = "";
     showDashboard(result.usuario);
+    loadDashboard(token);
   } catch {
     loginMessage.className = "message is-error";
     loginMessage.textContent = NETWORK_ERROR_MESSAGE;

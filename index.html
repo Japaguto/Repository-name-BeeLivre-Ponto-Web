@@ -48,21 +48,23 @@
         </div>
         <button id="logoutButton" class="button button--quiet" type="button">Sair</button>
       </header>
+      <p id="dashboardMessage" class="message dashboard-message" role="status" aria-live="polite"></p>
 
       <section class="card today-card" aria-labelledby="todayTitle">
         <div class="section-heading">
           <div>
             <p class="eyebrow">Resumo da jornada</p>
             <h2 id="todayTitle">Hoje</h2>
+            <p id="todayDate" class="today-date"></p>
           </div>
-          <span class="status-pill">Aguardando dados</span>
+          <span id="todayStatusBadge" class="status-pill">Carregando...</span>
         </div>
         <div class="metrics">
-          <div class="metric"><span>Trabalhado</span><strong>—</strong></div>
-          <div class="metric"><span>TEIJI</span><strong>—</strong></div>
-          <div class="metric"><span>ZANGYO</span><strong>—</strong></div>
+          <div class="metric"><span>Trabalhado</span><strong id="todayWorked">Carregando...</strong></div>
+          <div class="metric"><span>TEIJI</span><strong id="todayTeiji">Carregando...</strong></div>
+          <div class="metric"><span>ZANGYO</span><strong id="todayZangyo">Carregando...</strong></div>
         </div>
-        <div class="current-status"><span>Situação atual</span><strong>Aguardando dados</strong></div>
+        <div class="current-status"><span>Situação atual</span><strong id="todaySituation">Carregando...</strong></div>
       </section>
 
       <section class="card" aria-labelledby="clockTitle">
@@ -101,14 +103,18 @@
         <div class="section-heading">
           <div><p class="eyebrow">Jornada prevista</p><h2 id="scheduleTitle">Minha escala de hoje</h2></div>
         </div>
-        <div class="empty-state"><span aria-hidden="true">◷</span><p>A escala será carregada do sistema.</p></div>
+        <div id="scheduleList" class="data-list">
+          <div class="empty-state"><span aria-hidden="true">◷</span><p>Carregando...</p></div>
+        </div>
       </section>
 
       <section class="card" aria-labelledby="historyTitle">
         <div class="section-heading">
           <div><p class="eyebrow">Histórico</p><h2 id="historyTitle">Últimos dias</h2></div>
         </div>
-        <div class="empty-state"><span aria-hidden="true">☷</span><p>O histórico será carregado do sistema.</p></div>
+        <div id="historyList" class="data-list">
+          <div class="empty-state"><span aria-hidden="true">☷</span><p>Carregando...</p></div>
+        </div>
       </section>
 
       <section id="managerArea" class="card manager-card" aria-labelledby="managerTitle" hidden>
