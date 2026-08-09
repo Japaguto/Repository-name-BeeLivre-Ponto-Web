@@ -78,10 +78,10 @@
         <p class="helper">Escolha a ação antes de abrir a câmera.</p>
 
         <div class="action-grid" role="group" aria-label="Escolha a ação do ponto">
-          <button class="action-button" type="button" data-action="Entrada"><span aria-hidden="true">→</span>Entrada</button>
-          <button class="action-button" type="button" data-action="Início do intervalo"><span aria-hidden="true">Ⅱ</span>Início intervalo</button>
-          <button class="action-button" type="button" data-action="Fim do intervalo"><span aria-hidden="true">▶</span>Fim intervalo</button>
-          <button class="action-button" type="button" data-action="Saída"><span aria-hidden="true">←</span>Saída</button>
+          <button class="action-button" type="button" data-action="ENTRADA" data-label="Entrada"><span aria-hidden="true">→</span>Entrada</button>
+          <button class="action-button" type="button" data-action="INTERVALO_INICIO" data-label="Início intervalo"><span aria-hidden="true">Ⅱ</span>Início intervalo</button>
+          <button class="action-button" type="button" data-action="INTERVALO_FIM" data-label="Fim intervalo"><span aria-hidden="true">▶</span>Fim intervalo</button>
+          <button class="action-button" type="button" data-action="SAIDA" data-label="Saída"><span aria-hidden="true">←</span>Saída</button>
         </div>
 
         <div class="scanner-step">
@@ -91,10 +91,12 @@
 
         <div id="scanStatus" class="message" role="status" aria-live="polite">Selecione uma ação para continuar.</div>
         <div id="scanResult" class="scan-result" hidden>
-          <p>Leitura concluída — nenhum registro foi enviado.</p>
+          <p>Ponto registrado com sucesso</p>
           <dl>
-            <div><dt>Ação escolhida</dt><dd id="resultAction">—</dd></div>
-            <div><dt>QR lido</dt><dd id="resultQr">—</dd></div>
+            <div><dt>Ação</dt><dd id="resultAction">—</dd></div>
+            <div><dt>Horário real</dt><dd id="resultRealTime">—</dd></div>
+            <div><dt>Horário aplicado</dt><dd id="resultAppliedTime">—</dd></div>
+            <div><dt>Situação</dt><dd id="resultSituation">—</dd></div>
           </dl>
         </div>
       </section>
@@ -123,11 +125,18 @@
           <span class="role-pill">ADMIN / RESPONSÁVEL</span>
         </div>
         <p class="helper">Esta área será exibida apenas para perfis autorizados.</p>
-        <div class="qr-placeholder" aria-label="Espaço reservado para o QR temporário">
-          <span aria-hidden="true">▦</span><strong>QR temporário</strong><small>Aguardando geração</small>
+        <div class="qr-placeholder" aria-label="QR temporário do responsável">
+          <div id="managerQrCode" class="manager-qr-code" aria-label="QR Code gerado"></div>
+          <div id="managerQrEmpty" class="manager-qr-empty">
+            <span aria-hidden="true">▦</span><strong>QR temporário</strong><small>Aguardando geração</small>
+          </div>
         </div>
         <button id="generateQrButton" class="button button--secondary" type="button">Gerar novo QR</button>
         <p id="managerMessage" class="message" role="status" aria-live="polite"></p>
+        <dl id="managerQrMeta" class="qr-meta" hidden>
+          <div><dt>Criado às</dt><dd id="managerQrCreated">—</dd></div>
+          <div><dt>Expira às</dt><dd id="managerQrExpires">—</dd></div>
+        </dl>
       </section>
     </section>
   </main>
@@ -149,6 +158,7 @@
   </div>
 
   <script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

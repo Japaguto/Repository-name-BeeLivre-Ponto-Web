@@ -23,7 +23,9 @@ const readQrButton = document.getElementById("readQrButton");
 const scanStatus = document.getElementById("scanStatus");
 const scanResult = document.getElementById("scanResult");
 const resultAction = document.getElementById("resultAction");
-const resultQr = document.getElementById("resultQr");
+const resultRealTime = document.getElementById("resultRealTime");
+const resultAppliedTime = document.getElementById("resultAppliedTime");
+const resultSituation = document.getElementById("resultSituation");
 const scannerModal = document.getElementById("scannerModal");
 const closeScannerButton = document.getElementById("closeScanner");
 const cameraAction = document.getElementById("cameraAction");
@@ -31,15 +33,23 @@ const cameraStatus = document.getElementById("cameraStatus");
 const video = document.getElementById("camera");
 const generateQrButton = document.getElementById("generateQrButton");
 const managerMessage = document.getElementById("managerMessage");
+const managerQrCode = document.getElementById("managerQrCode");
+const managerQrEmpty = document.getElementById("managerQrEmpty");
+const managerQrMeta = document.getElementById("managerQrMeta");
+const managerQrCreated = document.getElementById("managerQrCreated");
+const managerQrExpires = document.getElementById("managerQrExpires");
 
 const API_URL = "https://script.google.com/macros/s/AKfycbywRC0bJFYrUJdHwS1_7CdwoOO2Eso7Ad6wqAghowdxUhbFGdY6W5roi4l-N18V0rua_Q/exec";
 const TOKEN_KEY = "beelivre_ponto_token";
 const NETWORK_ERROR_MESSAGE = "Não foi possível conectar ao sistema. Tente novamente.";
 
 let selectedAction = "";
+let selectedActionLabel = "";
 let scannerControls = null;
 let isAuthenticating = false;
+let isRegistering = false;
 let dashboardRequestId = 0;
+let qrExpirationTimer = null;
 
 async function postToApi(route, data) {
   const response = await fetch(`${API_URL}?api=${route}`, {
@@ -67,7 +77,34 @@ function clearUser() {
   userName.textContent = "";
   userProfile.textContent = "";
   managerArea.hidden = true;
+  clearManagerQr();
+}
+
+function isInvalidSession(result) {
+  return result?.ok === false && result?.error === "Sessão inválida.";
+}
+
+function expireSession() {
+  sessionStorage.removeItem(TOKEN_KEY);
+  dashboardRequestId += 1;
+  pinInput.value = "";
+  showLogin();
+  loginMessage.className = "message is-error";
+  loginMessage.textContent = "Sua sessão expirou. Entre novamente.";
+}
+
+function clearManagerQr() {
+  if (qrExpirationTimer) {
+    clearTimeout(qrExpirationTimer);
+    qrExpirationTimer = null;
+  }
+  managerQrCode.replaceChildren();
+  managerQrEmpty.hidden = false;
+  managerQrMeta.hidden = true;
+  managerQrCreated.textContent = "—";
+  managerQrExpires.textContent = "—";
   managerMessage.textContent = "";
+  managerMessage.className = "message";
 }
 
 function valueOrDash(value) {
@@ -219,10 +256,7 @@ async function loadDashboard(token) {
     if (requestId !== dashboardRequestId) return;
 
     if (!result?.ok) {
-      sessionStorage.removeItem(TOKEN_KEY);
-      showLogin();
-      loginMessage.className = "message is-error";
-      loginMessage.textContent = "Sua sessão expirou. Entre novamente.";
+      expireSession();
       return;
     }
 
@@ -346,22 +380,27 @@ async function restoreSession() {
 
 actionButtons.forEach((button) => {
   button.addEventListener("click", () => {
+    if (isRegistering) return;
+
     actionButtons.forEach((item) => {
       item.classList.remove("is-selected");
       item.setAttribute("aria-pressed", "false");
     });
 
     selectedAction = button.dataset.action;
+    selectedActionLabel = button.dataset.label;
     button.classList.add("is-selected");
     button.setAttribute("aria-pressed", "true");
     readQrButton.disabled = false;
     scanStatus.className = "message";
-    scanStatus.textContent = `Ação selecionada: ${selectedAction}. Agora leia o QR.`;
+    scanStatus.textContent = `Ação selecionada: ${selectedActionLabel}. Agora leia o QR.`;
     scanResult.hidden = true;
   });
 });
 
 function openScanner() {
+  if (isRegistering) return;
+
   if (!selectedAction) {
     scanStatus.className = "message is-error";
     scanStatus.textContent = "Escolha uma ação antes de abrir a câmera.";
@@ -370,7 +409,7 @@ function openScanner() {
 
   scannerModal.hidden = false;
   document.body.classList.add("modal-open");
-  cameraAction.textContent = `Ação escolhida: ${selectedAction}`;
+  cameraAction.textContent = `Ação escolhida: ${selectedActionLabel}`;
   cameraStatus.className = "message message--light";
   cameraStatus.textContent = "Abrindo câmera e procurando QR…";
   startScanner();
@@ -422,23 +461,152 @@ function stopScanner() {
 }
 
 function completeScan(qrText) {
+  if (isRegistering) return;
+
   const actionAtScan = selectedAction;
   stopScanner();
-  resultAction.textContent = actionAtScan;
-  resultQr.textContent = qrText;
-  scanResult.hidden = false;
-  scanStatus.className = "message is-success";
-  scanStatus.textContent = "QR lido com sucesso. Nenhum ponto foi registrado.";
-  scanResult.scrollIntoView({ behavior: "smooth", block: "center" });
+  registerPoint(actionAtScan, qrText);
+}
+
+function clearSelectedAction() {
+  selectedAction = "";
+  selectedActionLabel = "";
+  actionButtons.forEach((button) => {
+    button.classList.remove("is-selected");
+    button.setAttribute("aria-pressed", "false");
+  });
+  readQrButton.disabled = true;
+}
+
+function formatRegisteredAction(action) {
+  const labels = {
+    ENTRADA: "Entrada",
+    INTERVALO_INICIO: "Início intervalo",
+    INTERVALO_FIM: "Fim intervalo",
+    SAIDA: "Saída"
+  };
+  return labels[action] || valueOrDash(action);
+}
+
+async function registerPoint(action, qrPayload) {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    expireSession();
+    return;
+  }
+
+  isRegistering = true;
+  readQrButton.disabled = true;
+  actionButtons.forEach((button) => { button.disabled = true; });
+  scanResult.hidden = true;
+  scanStatus.className = "message";
+  scanStatus.textContent = "Registrando ponto...";
+
+  try {
+    const result = await postToApi("registrar", {
+      token,
+      acao: action,
+      qr: qrPayload
+    });
+    if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
+
+    if (isInvalidSession(result)) {
+      expireSession();
+      return;
+    }
+
+    if (!result?.ok) {
+      scanStatus.className = "message is-error";
+      scanStatus.textContent = typeof result?.error === "string" ? result.error : "Não foi possível registrar o ponto.";
+      return;
+    }
+
+    const registro = result.registro || {};
+    resultAction.textContent = formatRegisteredAction(registro.acao);
+    resultRealTime.textContent = valueOrDash(registro.horaReal);
+    resultAppliedTime.textContent = valueOrDash(registro.horaAplicada);
+    resultSituation.textContent = valueOrDash(registro.situacao);
+    scanResult.hidden = false;
+    scanStatus.className = "message is-success";
+    scanStatus.textContent = "Ponto registrado com sucesso.";
+    clearSelectedAction();
+    scanResult.scrollIntoView({ behavior: "smooth", block: "center" });
+    loadDashboard(token);
+  } catch {
+    scanStatus.className = "message is-error";
+    scanStatus.textContent = "Não foi possível registrar o ponto. Tente novamente.";
+  } finally {
+    isRegistering = false;
+    actionButtons.forEach((button) => { button.disabled = false; });
+    if (selectedAction) readQrButton.disabled = false;
+  }
 }
 
 readQrButton.addEventListener("click", openScanner);
 closeScannerButton.addEventListener("click", stopScanner);
 scannerModal.querySelector("[data-close-scanner]").addEventListener("click", stopScanner);
 
-generateQrButton.addEventListener("click", () => {
+generateQrButton.addEventListener("click", async () => {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    expireSession();
+    return;
+  }
+
+  generateQrButton.disabled = true;
+  generateQrButton.textContent = "Gerando QR...";
   managerMessage.className = "message";
-  managerMessage.textContent = "A geração do QR será ativada quando o backend estiver conectado.";
+  managerMessage.textContent = "Gerando QR...";
+
+  try {
+    const result = await postToApi("qr", { token });
+    if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
+
+    if (isInvalidSession(result)) {
+      expireSession();
+      return;
+    }
+
+    if (!result?.ok) {
+      managerMessage.className = "message is-error";
+      managerMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível gerar o QR.";
+      return;
+    }
+
+    if (typeof result.qr !== "string" || !window.QRCode) {
+      managerMessage.className = "message is-error";
+      managerMessage.textContent = "Não foi possível gerar o QR.";
+      return;
+    }
+
+    clearManagerQr();
+    managerQrEmpty.hidden = true;
+    new QRCode(managerQrCode, {
+      text: result.qr,
+      width: 220,
+      height: 220,
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    managerQrCreated.textContent = valueOrDash(result.criadoEm);
+    managerQrExpires.textContent = valueOrDash(result.expiraEm);
+    managerQrMeta.hidden = false;
+
+    const validityMinutes = Number(result.validadeMinutos);
+    const validMinutes = Number.isFinite(validityMinutes) && validityMinutes > 0 ? validityMinutes : 5;
+    managerMessage.className = "message is-success";
+    managerMessage.textContent = `QR válido por ${validMinutes} minutos.`;
+    qrExpirationTimer = setTimeout(() => {
+      managerMessage.className = "message is-error";
+      managerMessage.textContent = "QR expirado — gere um novo.";
+      qrExpirationTimer = null;
+    }, validMinutes * 60 * 1000);
+  } catch {
+    managerMessage.className = "message is-error";
+    managerMessage.textContent = "Não foi possível gerar o QR. Tente novamente.";
+  } finally {
+    generateQrButton.disabled = false;
+    generateQrButton.textContent = "Gerar novo QR";
+  }
 });
 
 document.addEventListener("keydown", (event) => {
