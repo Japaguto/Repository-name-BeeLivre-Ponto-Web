@@ -9,7 +9,7 @@
     body {
       font-family: Arial, sans-serif;
       max-width: 500px;
-      margin: 40px auto;
+      margin: 30px auto;
       padding: 20px;
     }
 
@@ -29,6 +29,15 @@
 
     #status {
       margin-top: 15px;
+      font-weight: bold;
+    }
+
+    #resultado {
+      margin-top: 15px;
+      padding: 15px;
+      background: #f3f3f3;
+      border-radius: 10px;
+      word-break: break-all;
     }
   </style>
 </head>
@@ -37,11 +46,13 @@
 
   <h1>BeeLivre Ponto</h1>
 
-  <button id="abrirCamera">
-    Testar câmera
+  <button id="lerQR">
+    Ler QR Code
   </button>
 
-  <div id="status"></div>
+  <div id="status">
+    Aguardando teste.
+  </div>
 
   <video
     id="camera"
@@ -50,29 +61,56 @@
     muted>
   </video>
 
+  <div id="resultado">
+    Nenhum QR lido ainda.
+  </div>
+
+  <script src="https://unpkg.com/@zxing/browser@0.2.1"></script>
+
   <script>
-    const botao = document.getElementById("abrirCamera");
+    const botao = document.getElementById("lerQR");
     const video = document.getElementById("camera");
     const status = document.getElementById("status");
+    const resultado = document.getElementById("resultado");
+
+    let controles = null;
 
     botao.addEventListener("click", async () => {
       try {
 
-        status.textContent = "Abrindo câmera...";
+        if (controles) {
+          controles.stop();
+          controles = null;
+        }
 
-        const stream =
-          await navigator.mediaDevices.getUserMedia({
+        status.textContent = "Abrindo câmera e procurando QR...";
+
+        const leitor = new ZXingBrowser.BrowserQRCodeReader();
+
+        controles = await leitor.decodeFromConstraints(
+          {
             video: {
               facingMode: {
                 ideal: "environment"
               }
             },
             audio: false
-          });
+          },
+          video,
+          (result, error, controls) => {
 
-        video.srcObject = stream;
+            if (result) {
 
-        status.textContent = "✅ Câmera funcionando.";
+              const texto = result.getText();
+
+              resultado.textContent = texto;
+              status.textContent = "✅ QR lido com sucesso.";
+
+              controls.stop();
+              controles = null;
+            }
+          }
+        );
 
       } catch (erro) {
 
