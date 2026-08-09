@@ -72,6 +72,9 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
   box-shadow: var(--shadow);
 }
 .login-card { margin-bottom: 10px; padding: 24px; }
+.temporary-test { margin-bottom: 10px; padding: 16px; }
+.temporary-test .eyebrow { text-align: center; }
+.temporary-test .message { overflow-wrap: anywhere; white-space: pre-wrap; }
 
 .field { margin-bottom: 18px; }
 .field label { display: block; margin-bottom: 7px; color: var(--brown-900); font-size: 14px; font-weight: 700; }

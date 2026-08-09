@@ -3,6 +3,8 @@ const dashboardView = document.getElementById("dashboardView");
 const loginForm = document.getElementById("loginForm");
 const loginMessage = document.getElementById("loginMessage");
 const openDemoButton = document.getElementById("openDemo");
+const testPostButton = document.getElementById("testPostButton");
+const postTestResponse = document.getElementById("postTestResponse");
 const logoutButton = document.getElementById("logoutButton");
 const actionButtons = document.querySelectorAll("[data-action]");
 const readQrButton = document.getElementById("readQrButton");
@@ -44,6 +46,33 @@ loginForm.addEventListener("submit", (event) => {
 
 openDemoButton.addEventListener("click", showDashboard);
 logoutButton.addEventListener("click", showLogin);
+
+testPostButton.addEventListener("click", async () => {
+  const endpoint = "https://script.google.com/macros/s/AKfycbywRC0bJFYrUJdHwS1_7CdwoOO2Eso7Ad6wqAghowdxUhbFGdY6W5roi4l-N18V0rua_Q/exec?api=ping";
+
+  testPostButton.disabled = true;
+  postTestResponse.className = "message";
+  postTestResponse.textContent = "Enviando teste POST…";
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: "teste=beelivre"
+    });
+    const responseText = await response.text();
+
+    postTestResponse.className = response.ok ? "message is-success" : "message is-error";
+    postTestResponse.textContent = `HTTP ${response.status}\n${responseText || "Resposta vazia."}`;
+  } catch (error) {
+    postTestResponse.className = "message is-error";
+    postTestResponse.textContent = `Falha no teste POST: ${error.message}`;
+  } finally {
+    testPostButton.disabled = false;
+  }
+});
 
 actionButtons.forEach((button) => {
   button.addEventListener("click", () => {
