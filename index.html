@@ -4,9 +4,87 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BeeLivre Ponto</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 20px;
+    }
+
+    button {
+      width: 100%;
+      padding: 18px;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    video {
+      width: 100%;
+      margin-top: 20px;
+      border-radius: 12px;
+      background: #000;
+    }
+
+    #status {
+      margin-top: 15px;
+    }
+  </style>
 </head>
+
 <body>
+
   <h1>BeeLivre Ponto</h1>
-  <p>Frontend GitHub Pages funcionando.</p>
+
+  <button id="abrirCamera">
+    Testar câmera
+  </button>
+
+  <div id="status"></div>
+
+  <video
+    id="camera"
+    autoplay
+    playsinline
+    muted>
+  </video>
+
+  <script>
+    const botao = document.getElementById("abrirCamera");
+    const video = document.getElementById("camera");
+    const status = document.getElementById("status");
+
+    botao.addEventListener("click", async () => {
+      try {
+
+        status.textContent = "Abrindo câmera...";
+
+        const stream =
+          await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: {
+                ideal: "environment"
+              }
+            },
+            audio: false
+          });
+
+        video.srcObject = stream;
+
+        status.textContent = "✅ Câmera funcionando.";
+
+      } catch (erro) {
+
+        status.textContent =
+          "❌ Erro: " +
+          erro.name +
+          " - " +
+          erro.message;
+
+      }
+    });
+  </script>
+
 </body>
 </html>
