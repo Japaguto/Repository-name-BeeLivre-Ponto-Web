@@ -1,11 +1,14 @@
 const loginView = document.getElementById("loginView");
 const dashboardView = document.getElementById("dashboardView");
 const loginForm = document.getElementById("loginForm");
+const loginInput = document.getElementById("login");
+const pinInput = document.getElementById("pin");
+const loginButton = document.getElementById("loginButton");
 const loginMessage = document.getElementById("loginMessage");
-const openDemoButton = document.getElementById("openDemo");
-const testPostButton = document.getElementById("testPostButton");
-const postTestResponse = document.getElementById("postTestResponse");
 const logoutButton = document.getElementById("logoutButton");
+const userName = document.getElementById("userName");
+const userProfile = document.getElementById("userProfile");
+const managerArea = document.getElementById("managerArea");
 const actionButtons = document.querySelectorAll("[data-action]");
 const readQrButton = document.getElementById("readQrButton");
 const scanStatus = document.getElementById("scanStatus");
@@ -20,10 +23,45 @@ const video = document.getElementById("camera");
 const generateQrButton = document.getElementById("generateQrButton");
 const managerMessage = document.getElementById("managerMessage");
 
+const API_URL = "https://script.google.com/macros/s/AKfycbywRC0bJFYrUJdHwS1_7CdwoOO2Eso7Ad6wqAghowdxUhbFGdY6W5roi4l-N18V0rua_Q/exec";
+const TOKEN_KEY = "beelivre_ponto_token";
+const NETWORK_ERROR_MESSAGE = "Não foi possível conectar ao sistema. Tente novamente.";
+
 let selectedAction = "";
 let scannerControls = null;
+let isAuthenticating = false;
 
-function showDashboard() {
+async function postToApi(route, data) {
+  const response = await fetch(`${API_URL}?api=${route}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams(data).toString()
+  });
+
+  if (!response.ok) throw new Error("HTTP_ERROR");
+  return response.json();
+}
+
+function applyUser(usuario) {
+  const nome = typeof usuario?.nome === "string" ? usuario.nome : "";
+  const perfil = typeof usuario?.perfil === "string" ? usuario.perfil.toUpperCase() : "";
+
+  userName.textContent = nome;
+  userProfile.textContent = perfil ? `Perfil: ${perfil}` : "";
+  managerArea.hidden = perfil !== "ADMIN" && perfil !== "RESPONSAVEL";
+}
+
+function clearUser() {
+  userName.textContent = "";
+  userProfile.textContent = "";
+  managerArea.hidden = true;
+  managerMessage.textContent = "";
+}
+
+function showDashboard(usuario) {
+  applyUser(usuario);
   loginView.hidden = true;
   dashboardView.hidden = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -31,48 +69,99 @@ function showDashboard() {
 
 function showLogin() {
   stopScanner();
+  clearUser();
   dashboardView.hidden = true;
   loginView.hidden = false;
-  loginForm.reset();
-  loginMessage.textContent = "";
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-loginForm.addEventListener("submit", (event) => {
+function setLoginLoading(isLoading) {
+  isAuthenticating = isLoading;
+  loginButton.disabled = isLoading;
+  loginButton.textContent = isLoading ? "Entrando..." : "Entrar";
+}
+
+loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (isAuthenticating) return;
+
+  setLoginLoading(true);
   loginMessage.className = "message";
-  loginMessage.textContent = "O backend ainda não está conectado. Nenhum dado foi enviado.";
-});
-
-openDemoButton.addEventListener("click", showDashboard);
-logoutButton.addEventListener("click", showLogin);
-
-testPostButton.addEventListener("click", async () => {
-  const endpoint = "https://script.google.com/macros/s/AKfycbywRC0bJFYrUJdHwS1_7CdwoOO2Eso7Ad6wqAghowdxUhbFGdY6W5roi4l-N18V0rua_Q/exec?api=ping";
-
-  testPostButton.disabled = true;
-  postTestResponse.className = "message";
-  postTestResponse.textContent = "Enviando teste POST…";
+  loginMessage.textContent = "Entrando...";
 
   try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
-      body: "teste=beelivre"
+    const result = await postToApi("login", {
+      login: loginInput.value,
+      pin: pinInput.value
     });
-    const responseText = await response.text();
 
-    postTestResponse.className = response.ok ? "message is-success" : "message is-error";
-    postTestResponse.textContent = `HTTP ${response.status}\n${responseText || "Resposta vazia."}`;
-  } catch (error) {
-    postTestResponse.className = "message is-error";
-    postTestResponse.textContent = `Falha no teste POST: ${error.message}`;
+    if (!result?.ok) {
+      loginMessage.className = "message is-error";
+      loginMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível entrar.";
+      return;
+    }
+
+    if (typeof result.token !== "string" || !result.usuario) {
+      throw new Error("INVALID_RESPONSE");
+    }
+
+    sessionStorage.setItem(TOKEN_KEY, result.token);
+    pinInput.value = "";
+    loginMessage.textContent = "";
+    showDashboard(result.usuario);
+  } catch {
+    loginMessage.className = "message is-error";
+    loginMessage.textContent = NETWORK_ERROR_MESSAGE;
   } finally {
-    testPostButton.disabled = false;
+    setLoginLoading(false);
   }
 });
+
+logoutButton.addEventListener("click", async () => {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  logoutButton.disabled = true;
+
+  try {
+    if (token) await postToApi("logout", { token });
+  } catch {
+    // A limpeza local deve acontecer mesmo se o backend estiver indisponível.
+  } finally {
+    sessionStorage.removeItem(TOKEN_KEY);
+    pinInput.value = "";
+    loginForm.reset();
+    loginMessage.textContent = "";
+    logoutButton.disabled = false;
+    showLogin();
+  }
+});
+
+async function restoreSession() {
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) return;
+
+  loginButton.disabled = true;
+  loginMessage.className = "message";
+  loginMessage.textContent = "Validando sessão...";
+
+  try {
+    const result = await postToApi("session", { token });
+
+    if (!result?.ok || !result.usuario) {
+      sessionStorage.removeItem(TOKEN_KEY);
+      loginMessage.className = "message is-error";
+      loginMessage.textContent = typeof result?.error === "string" ? result.error : "Sua sessão expirou. Entre novamente.";
+      return;
+    }
+
+    loginMessage.textContent = "";
+    showDashboard(result.usuario);
+  } catch {
+    loginMessage.className = "message is-error";
+    loginMessage.textContent = NETWORK_ERROR_MESSAGE;
+  } finally {
+    loginButton.disabled = false;
+  }
+}
 
 actionButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -176,3 +265,5 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("pagehide", stopScannerStream);
+
+restoreSession();

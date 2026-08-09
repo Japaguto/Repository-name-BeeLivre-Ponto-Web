@@ -21,28 +21,19 @@
       <form id="loginForm" class="card login-card">
         <div class="field">
           <label for="login">Login</label>
-          <input id="login" name="login" type="text" autocomplete="username" placeholder="Digite seu login">
+          <input id="login" name="login" type="text" autocomplete="username" placeholder="Digite seu login" required>
         </div>
 
         <div class="field">
           <label for="pin">PIN</label>
-          <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Digite seu PIN">
+          <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Digite seu PIN" required>
         </div>
 
-        <button class="button button--primary" type="submit">Entrar</button>
+        <button id="loginButton" class="button button--primary" type="submit">Entrar</button>
         <p id="loginMessage" class="message" role="status" aria-live="polite"></p>
       </form>
 
-      <div class="card temporary-test">
-        <p class="eyebrow">Teste temporário</p>
-        <button id="testPostButton" class="button button--secondary" type="button">
-          Testar conexão POST — TEMPORÁRIO
-        </button>
-        <div id="postTestResponse" class="message" role="status" aria-live="polite"></div>
-      </div>
-
-      <button id="openDemo" class="button button--link" type="button">Visualizar painel de demonstração</button>
-      <p class="privacy-note">Seus dados serão validados com segurança pelo sistema quando o backend for conectado.</p>
+      <p class="privacy-note">Seus dados são enviados com segurança para validação pelo sistema.</p>
     </section>
 
     <section id="dashboardView" class="dashboard" hidden aria-label="Painel do funcionário">
@@ -51,8 +42,8 @@
           <span class="brand__mark brand__mark--small" aria-hidden="true">B</span>
           <div>
             <p class="eyebrow">BeeLivre Ponto</p>
-            <h1>Olá, Colaborador</h1>
-            <p class="profile">Perfil: Funcionário</p>
+            <h1 id="userName"></h1>
+            <p id="userProfile" class="profile"></p>
           </div>
         </div>
         <button id="logoutButton" class="button button--quiet" type="button">Sair</button>
@@ -64,14 +55,14 @@
             <p class="eyebrow">Resumo da jornada</p>
             <h2 id="todayTitle">Hoje</h2>
           </div>
-          <span class="status-pill">Aguardando entrada</span>
+          <span class="status-pill">Aguardando dados</span>
         </div>
         <div class="metrics">
-          <div class="metric"><span>Trabalhado</span><strong>00:00</strong></div>
-          <div class="metric"><span>TEIJI</span><strong>08:00</strong></div>
-          <div class="metric"><span>ZANGYO</span><strong>00:00</strong></div>
+          <div class="metric"><span>Trabalhado</span><strong>—</strong></div>
+          <div class="metric"><span>TEIJI</span><strong>—</strong></div>
+          <div class="metric"><span>ZANGYO</span><strong>—</strong></div>
         </div>
-        <div class="current-status"><span>Situação atual</span><strong>Fora da jornada</strong></div>
+        <div class="current-status"><span>Situação atual</span><strong>Aguardando dados</strong></div>
       </section>
 
       <section class="card" aria-labelledby="clockTitle">
@@ -110,20 +101,17 @@
         <div class="section-heading">
           <div><p class="eyebrow">Jornada prevista</p><h2 id="scheduleTitle">Minha escala de hoje</h2></div>
         </div>
-        <div class="schedule-row"><span>Entrada</span><strong>08:00</strong></div>
-        <div class="schedule-row"><span>Intervalo</span><strong>12:00 – 13:00</strong></div>
-        <div class="schedule-row"><span>Saída</span><strong>17:00</strong></div>
-        <p class="placeholder-note">Dados demonstrativos até a conexão com o backend.</p>
+        <div class="empty-state"><span aria-hidden="true">◷</span><p>A escala será carregada do sistema.</p></div>
       </section>
 
       <section class="card" aria-labelledby="historyTitle">
         <div class="section-heading">
           <div><p class="eyebrow">Histórico</p><h2 id="historyTitle">Últimos dias</h2></div>
         </div>
-        <div class="empty-state"><span aria-hidden="true">☷</span><p>O histórico aparecerá aqui após a conexão com o backend.</p></div>
+        <div class="empty-state"><span aria-hidden="true">☷</span><p>O histórico será carregado do sistema.</p></div>
       </section>
 
-      <section class="card manager-card" aria-labelledby="managerTitle">
+      <section id="managerArea" class="card manager-card" aria-labelledby="managerTitle" hidden>
         <div class="section-heading">
           <div><p class="eyebrow">Área restrita</p><h2 id="managerTitle">QR do responsável</h2></div>
           <span class="role-pill">ADMIN / RESPONSÁVEL</span>
