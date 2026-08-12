@@ -41,15 +41,39 @@ const managerQrExpires = document.getElementById("managerQrExpires");
 
 const API_URL = "https://script.google.com/macros/s/AKfycbywRC0bJFYrUJdHwS1_7CdwoOO2Eso7Ad6wqAghowdxUhbFGdY6W5roi4l-N18V0rua_Q/exec";
 const TOKEN_KEY = "beelivre_ponto_token";
+const ZXING_URL = "https://unpkg.com/@zxing/browser@0.2.1";
+const QRCODE_URL = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+const scriptLoads = new Map();
 const NETWORK_ERROR_MESSAGE = "Não foi possível conectar ao sistema. Tente novamente.";
 
 let selectedAction = "";
 let selectedActionLabel = "";
 let scannerControls = null;
+let isLoadingScanner = false;
 let isAuthenticating = false;
 let isRegistering = false;
 let dashboardRequestId = 0;
 let qrExpirationTimer = null;
+
+function loadScriptOnce(url, expectedGlobal) {
+  if (window[expectedGlobal]) return Promise.resolve(window[expectedGlobal]);
+  if (scriptLoads.has(url)) return scriptLoads.get(url);
+
+  const load = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = url;
+    script.async = true;
+    script.onload = () => window[expectedGlobal]
+      ? resolve(window[expectedGlobal])
+      : reject(new Error("Biblioteca indisponível."));
+    script.onerror = () => reject(new Error("Falha ao carregar a biblioteca."));
+    document.head.append(script);
+  });
+
+  scriptLoads.set(url, load);
+  load.catch(() => scriptLoads.delete(url));
+  return load;
+}
 
 async function postToApi(route, data) {
   const response = await fetch(`${API_URL}?api=${route}`, {
@@ -260,16 +284,20 @@ async function loadDashboard(token) {
       return;
     }
 
-    if (result.usuario) applyUser(result.usuario);
-    renderToday(result.hoje);
-    renderSchedule(result.escalaHoje);
-    renderHistory(result.historico);
-    dashboardMessage.textContent = "";
+    renderDashboard(result);
   } catch {
     if (requestId !== dashboardRequestId) return;
     dashboardMessage.className = "message dashboard-message is-error";
     dashboardMessage.textContent = "Não foi possível carregar os dados. Tente novamente.";
   }
+}
+
+function renderDashboard(result) {
+  if (result?.usuario) applyUser(result.usuario);
+  renderToday(result?.hoje);
+  renderSchedule(result?.escalaHoje);
+  renderHistory(result?.historico);
+  dashboardMessage.textContent = "";
 }
 
 function showDashboard(usuario) {
@@ -321,7 +349,11 @@ loginForm.addEventListener("submit", async (event) => {
     pinInput.value = "";
     loginMessage.textContent = "";
     showDashboard(result.usuario);
-    loadDashboard(result.token);
+    if (result.dashboard) {
+      renderDashboard(result.dashboard);
+    } else {
+      await loadDashboard(result.token);
+    }
   } catch {
     loginMessage.className = "message is-error";
     loginMessage.textContent = NETWORK_ERROR_MESSAGE;
@@ -355,10 +387,10 @@ async function restoreSession() {
 
   loginButton.disabled = true;
   loginMessage.className = "message";
-  loginMessage.textContent = "Validando sessão...";
+  loginMessage.textContent = "Carregando seus dados...";
 
   try {
-    const result = await postToApi("session", { token });
+    const result = await postToApi("dashboard", { token });
 
     if (!result?.ok || !result.usuario) {
       sessionStorage.removeItem(TOKEN_KEY);
@@ -369,7 +401,7 @@ async function restoreSession() {
 
     loginMessage.textContent = "";
     showDashboard(result.usuario);
-    loadDashboard(token);
+    renderDashboard(result);
   } catch {
     loginMessage.className = "message is-error";
     loginMessage.textContent = NETWORK_ERROR_MESSAGE;
@@ -398,8 +430,8 @@ actionButtons.forEach((button) => {
   });
 });
 
-function openScanner() {
-  if (isRegistering) return;
+async function openScanner() {
+  if (isRegistering || isLoadingScanner) return;
 
   if (!selectedAction) {
     scanStatus.className = "message is-error";
@@ -407,12 +439,27 @@ function openScanner() {
     return;
   }
 
-  scannerModal.hidden = false;
-  document.body.classList.add("modal-open");
-  cameraAction.textContent = `Ação escolhida: ${selectedActionLabel}`;
-  cameraStatus.className = "message message--light";
-  cameraStatus.textContent = "Abrindo câmera e procurando QR…";
-  startScanner();
+  isLoadingScanner = true;
+  readQrButton.disabled = true;
+  scanStatus.className = "message";
+  scanStatus.textContent = "Carregando leitor de QR...";
+
+  try {
+    await loadScriptOnce(ZXING_URL, "ZXingBrowser");
+    scannerModal.hidden = false;
+    document.body.classList.add("modal-open");
+    cameraAction.textContent = `Ação escolhida: ${selectedActionLabel}`;
+    cameraStatus.className = "message message--light";
+    cameraStatus.textContent = "Abrindo câmera e procurando QR…";
+    scanStatus.textContent = `Ação selecionada: ${selectedActionLabel}. Aponte a câmera para o QR.`;
+    startScanner();
+  } catch {
+    scanStatus.className = "message is-error";
+    scanStatus.textContent = "Não foi possível carregar o leitor de QR. Tente novamente.";
+    readQrButton.disabled = false;
+  } finally {
+    isLoadingScanner = false;
+  }
 }
 
 async function startScanner() {
@@ -531,7 +578,11 @@ async function registerPoint(action, qrPayload) {
     scanStatus.textContent = "Ponto registrado com sucesso.";
     clearSelectedAction();
     scanResult.scrollIntoView({ behavior: "smooth", block: "center" });
-    loadDashboard(token);
+    if (result.dashboard) {
+      renderDashboard(result.dashboard);
+    } else {
+      await loadDashboard(token);
+    }
   } catch {
     scanStatus.className = "message is-error";
     scanStatus.textContent = "Não foi possível registrar o ponto. Tente novamente.";
@@ -559,7 +610,10 @@ generateQrButton.addEventListener("click", async () => {
   managerMessage.textContent = "Gerando QR...";
 
   try {
-    const result = await postToApi("qr", { token });
+    const [result] = await Promise.all([
+      postToApi("qr", { token }),
+      loadScriptOnce(QRCODE_URL, "QRCode")
+    ]);
     if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
 
     if (isInvalidSession(result)) {
