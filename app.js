@@ -80,6 +80,18 @@ const inviteLink = document.getElementById("inviteLink");
 const copyInviteLinkButton = document.getElementById("copyInviteLinkButton");
 const finishInviteButton = document.getElementById("finishInviteButton");
 const createInviteMessage = document.getElementById("createInviteMessage");
+const manageInvitesButton = document.getElementById("manageInvitesButton");
+const manageInvitesModal = document.getElementById("manageInvitesModal");
+const closeManageInvitesButton = document.getElementById("closeManageInvitesButton");
+const invitesManagerContent = document.getElementById("invitesManagerContent");
+const inviteFilters = document.getElementById("inviteFilters");
+const inviteFilterButtons = document.querySelectorAll("[data-invite-filter]");
+const invitesMessage = document.getElementById("invitesMessage");
+const invitesList = document.getElementById("invitesList");
+const cancelInviteConfirmation = document.getElementById("cancelInviteConfirmation");
+const backFromCancelInviteButton = document.getElementById("backFromCancelInviteButton");
+const confirmCancelInviteButton = document.getElementById("confirmCancelInviteButton");
+const cancelInviteMessage = document.getElementById("cancelInviteMessage");
 
 const API_URL = "https://script.google.com/macros/s/AKfycbywRC0bJFYrUJdHwS1_7CdwoOO2Eso7Ad6wqAghowdxUhbFGdY6W5roi4l-N18V0rua_Q/exec";
 const TOKEN_KEY = "beelivre_ponto_token";
@@ -104,6 +116,12 @@ let isAcceptingInvite = false;
 let isRequestingRecovery = false;
 let isResettingPassword = false;
 let isCreatingInvite = false;
+let currentUserProfile = "";
+let loadedInvites = [];
+let activeInviteFilter = "pendente";
+let pendingCancelInviteId = null;
+let isLoadingInvites = false;
+let isCancellingInvite = false;
 
 const publicViews = [loginView, forgotPasswordView, inviteView, resetPasswordView];
 
@@ -166,6 +184,7 @@ function applyUser(usuario) {
   const nome = typeof usuario?.nome === "string" ? usuario.nome : "";
   const perfil = typeof usuario?.perfil === "string" ? usuario.perfil.toUpperCase() : "";
 
+  currentUserProfile = perfil;
   userName.textContent = nome;
   userProfile.textContent = perfil ? `Perfil: ${perfil}` : "";
   managerArea.hidden = perfil !== "ADMIN" && perfil !== "RESPONSAVEL";
@@ -173,11 +192,13 @@ function applyUser(usuario) {
 }
 
 function clearUser() {
+  currentUserProfile = "";
   userName.textContent = "";
   userProfile.textContent = "";
   managerArea.hidden = true;
   adminUsersArea.hidden = true;
   closeCreateInvite();
+  closeInvitesManager(true);
   clearManagerQr();
 }
 
@@ -914,6 +935,237 @@ copyInviteLinkButton.addEventListener("click", async () => {
   }
 });
 
+function closeInvitesManager(force = false) {
+  if (isCancellingInvite && !force) return;
+  pendingCancelInviteId = null;
+  loadedInvites = [];
+  invitesList.replaceChildren();
+  cancelInviteConfirmation.hidden = true;
+  invitesManagerContent.hidden = false;
+  manageInvitesModal.hidden = true;
+  if (scannerModal.hidden && inviteModal.hidden) document.body.classList.remove("modal-open");
+}
+
+function normalizeInviteStatus(status) {
+  const normalized = typeof status === "string" ? status.trim().toLowerCase() : "";
+  return ["pendente", "usado", "expirado", "cancelado"].includes(normalized) ? normalized : "";
+}
+
+function createInviteDetail(label, value) {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+  const row = document.createElement("div");
+  const term = document.createElement("dt");
+  const description = document.createElement("dd");
+  term.textContent = label;
+  description.textContent = String(value);
+  row.append(term, description);
+  return row;
+}
+
+function inviteEmptyMessage(filter) {
+  const messages = {
+    todos: "Nenhum convite encontrado.",
+    pendente: "Nenhum convite pendente.",
+    usado: "Nenhum convite usado.",
+    expirado: "Nenhum convite expirado.",
+    cancelado: "Nenhum convite cancelado."
+  };
+  return messages[filter] || messages.todos;
+}
+
+function updateInviteFilterCounts() {
+  const counts = { todos: loadedInvites.length, pendente: 0, usado: 0, expirado: 0, cancelado: 0 };
+  loadedInvites.forEach((invite) => {
+    const status = normalizeInviteStatus(invite?.status);
+    if (status) counts[status] += 1;
+  });
+  Object.entries(counts).forEach(([filter, count]) => {
+    const element = inviteFilters.querySelector(`[data-filter-count="${filter}"]`);
+    if (element) element.textContent = `(${count})`;
+  });
+}
+
+function renderInvites() {
+  invitesList.replaceChildren();
+  inviteFilterButtons.forEach((button) => {
+    const active = button.dataset.inviteFilter === activeInviteFilter;
+    button.classList.toggle("is-active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+
+  const visibleInvites = activeInviteFilter === "todos"
+    ? loadedInvites
+    : loadedInvites.filter((invite) => normalizeInviteStatus(invite?.status) === activeInviteFilter);
+
+  if (visibleInvites.length === 0) {
+    invitesList.append(createEmptyState("◇", inviteEmptyMessage(activeInviteFilter)));
+    return;
+  }
+
+  visibleInvites.forEach((invite) => {
+    const status = normalizeInviteStatus(invite?.status);
+    const card = document.createElement("article");
+    const header = document.createElement("div");
+    const title = document.createElement("h3");
+    const badge = document.createElement("span");
+    const details = document.createElement("dl");
+
+    card.className = "invite-card";
+    header.className = "invite-card__header";
+    title.textContent = valueOrDash(invite?.nome);
+    badge.className = `invite-status invite-status--${status || "desconhecido"}`;
+    badge.textContent = status ? status.charAt(0).toUpperCase() + status.slice(1) : "Desconhecido";
+    header.append(title, badge);
+
+    details.className = "invite-card__details";
+    [
+      createInviteDetail("Usuário", invite?.usuario),
+      createInviteDetail("Email", invite?.email),
+      createInviteDetail("Perfil", invite?.perfil),
+      createInviteDetail("Criado em", invite?.criadoEm),
+      createInviteDetail("Expira em", invite?.expiraEm),
+      status === "cancelado" ? createInviteDetail("Cancelado em", invite?.canceladoEm) : null,
+      status === "cancelado" ? createInviteDetail("Cancelado por", invite?.canceladoPorNome) : null
+    ].filter(Boolean).forEach((row) => details.append(row));
+    card.append(header, details);
+
+    if (status === "pendente" && invite?.id !== null && invite?.id !== undefined && String(invite.id).trim() !== "") {
+      const cancelButton = document.createElement("button");
+      cancelButton.className = "button button--danger invite-card__cancel";
+      cancelButton.type = "button";
+      cancelButton.dataset.cancelInviteId = String(invite.id);
+      cancelButton.textContent = "Cancelar convite";
+      card.append(cancelButton);
+    }
+    invitesList.append(card);
+  });
+}
+
+async function loadInvites(successMessage = "") {
+  if (isLoadingInvites) return;
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    closeInvitesManager();
+    expireSession();
+    return;
+  }
+  isLoadingInvites = true;
+  invitesMessage.className = "message";
+  invitesMessage.textContent = "Carregando convites...";
+  invitesList.replaceChildren();
+  try {
+    const result = await postToApi("convites_listar", { token });
+    if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
+    if (isInvalidSession(result)) {
+      closeInvitesManager();
+      expireSession();
+      return;
+    }
+    if (!result?.ok || !Array.isArray(result.convites)) {
+      invitesMessage.className = "message is-error";
+      invitesMessage.textContent = "Não foi possível carregar os convites.";
+      return;
+    }
+    loadedInvites = result.convites;
+    updateInviteFilterCounts();
+    renderInvites();
+    invitesMessage.className = successMessage ? "message is-success" : "message";
+    invitesMessage.textContent = successMessage;
+  } catch {
+    invitesMessage.className = "message is-error";
+    invitesMessage.textContent = "Não foi possível carregar os convites.";
+  } finally {
+    isLoadingInvites = false;
+  }
+}
+
+function openInvitesManager() {
+  if (currentUserProfile !== "ADMIN") return;
+  activeInviteFilter = "pendente";
+  pendingCancelInviteId = null;
+  loadedInvites = [];
+  updateInviteFilterCounts();
+  renderInvites();
+  cancelInviteConfirmation.hidden = true;
+  invitesManagerContent.hidden = false;
+  manageInvitesModal.hidden = false;
+  document.body.classList.add("modal-open");
+  loadInvites();
+}
+
+function showCancelInviteConfirmation(inviteId) {
+  pendingCancelInviteId = inviteId;
+  cancelInviteMessage.textContent = "";
+  cancelInviteMessage.className = "message";
+  invitesManagerContent.hidden = true;
+  cancelInviteConfirmation.hidden = false;
+}
+
+function hideCancelInviteConfirmation() {
+  if (isCancellingInvite) return;
+  pendingCancelInviteId = null;
+  cancelInviteConfirmation.hidden = true;
+  invitesManagerContent.hidden = false;
+}
+
+manageInvitesButton.addEventListener("click", openInvitesManager);
+closeManageInvitesButton.addEventListener("click", () => closeInvitesManager());
+manageInvitesModal.querySelector("[data-close-manage-invites]").addEventListener("click", () => closeInvitesManager());
+backFromCancelInviteButton.addEventListener("click", hideCancelInviteConfirmation);
+
+inviteFilterButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    activeInviteFilter = button.dataset.inviteFilter;
+    renderInvites();
+  });
+});
+
+invitesList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-cancel-invite-id]");
+  if (!button) return;
+  showCancelInviteConfirmation(button.dataset.cancelInviteId);
+});
+
+confirmCancelInviteButton.addEventListener("click", async () => {
+  if (isCancellingInvite || !pendingCancelInviteId) return;
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    closeInvitesManager();
+    expireSession();
+    return;
+  }
+  isCancellingInvite = true;
+  confirmCancelInviteButton.disabled = true;
+  confirmCancelInviteButton.textContent = "Cancelando...";
+  cancelInviteMessage.className = "message";
+  cancelInviteMessage.textContent = "Cancelando...";
+  try {
+    const result = await postToApi("convite_cancelar", { token, conviteId: pendingCancelInviteId });
+    if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
+    if (isInvalidSession(result)) {
+      closeInvitesManager();
+      expireSession();
+      return;
+    }
+    if (!result?.ok) {
+      cancelInviteMessage.className = "message is-error";
+      cancelInviteMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível cancelar o convite.";
+      return;
+    }
+    pendingCancelInviteId = null;
+    cancelInviteConfirmation.hidden = true;
+    invitesManagerContent.hidden = false;
+    await loadInvites("Convite cancelado com sucesso.");
+  } catch {
+    cancelInviteMessage.className = "message is-error";
+    cancelInviteMessage.textContent = "Não foi possível cancelar o convite.";
+  } finally {
+    isCancellingInvite = false;
+    confirmCancelInviteButton.disabled = false;
+    confirmCancelInviteButton.textContent = "Cancelar convite";
+  }
+});
+
 generateQrButton.addEventListener("click", async () => {
   const token = sessionStorage.getItem(TOKEN_KEY);
   if (!token) {
@@ -983,6 +1235,7 @@ generateQrButton.addEventListener("click", async () => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !scannerModal.hidden) stopScanner();
   if (event.key === "Escape" && !inviteModal.hidden) closeCreateInvite();
+  if (event.key === "Escape" && !manageInvitesModal.hidden && !isCancellingInvite) closeInvitesManager();
 });
 
 window.addEventListener("pagehide", stopScannerStream);

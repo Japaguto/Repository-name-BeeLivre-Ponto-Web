@@ -171,6 +171,7 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
 .history-item__times { margin: 10px 0 0; color: var(--ink); font-size: 12px; }
 .history-item__real { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
 .manager-card { border: 1px dashed #cbb68c; }
+.admin-actions { display: grid; gap: 10px; }
 .account-info { margin: 0 0 20px; }
 .account-info div { display: grid; grid-template-columns: 90px 1fr; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
 .account-info dt { color: var(--muted); font-size: 12px; }
@@ -200,6 +201,33 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
 #inviteModal .account-info div { border-bottom-color: rgba(255, 255, 255, .16); }
 #inviteModal .result-title { color: #bde8ce; }
 #inviteModal .button--link { color: #f1dfd0; }
+.invites-manager { overflow-x: hidden; overflow-y: auto; max-height: 92vh; color: var(--ink); background: var(--cream); }
+.invites-manager .modal__header { margin-bottom: 18px; }
+.invites-manager .modal__header h2 { color: var(--brown-900); -webkit-text-fill-color: var(--brown-900); opacity: 1; visibility: visible; }
+.invites-manager .modal__header .eyebrow { color: var(--brown-600); -webkit-text-fill-color: var(--brown-600); }
+.invites-manager .icon-button--light { color: var(--brown-700); -webkit-text-fill-color: var(--brown-700); background: var(--brown-100); }
+.invite-filters { display: flex; gap: 8px; overflow-x: auto; margin: 0 -2px 16px; padding: 2px 2px 7px; scrollbar-width: thin; }
+.invite-filter { flex: 0 0 auto; min-height: 42px; padding: 0 13px; border: 1px solid var(--line); border-radius: 999px; color: var(--brown-700); -webkit-text-fill-color: var(--brown-700); background: var(--white); font-size: 12px; font-weight: 800; }
+.invite-filter.is-active { border-color: var(--brown-700); color: var(--white); -webkit-text-fill-color: var(--white); background: var(--brown-700); }
+.invites-list { display: grid; gap: 12px; }
+.invite-card { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 16px; color: var(--ink); background: var(--white); }
+.invite-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.invite-card__header h3 { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--brown-900); -webkit-text-fill-color: var(--brown-900); font-size: 16px; }
+.invite-status { flex: 0 0 auto; padding: 5px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; }
+.invite-status--pendente { color: #665326; -webkit-text-fill-color: #665326; background: #f7efcf; }
+.invite-status--usado { color: var(--success); -webkit-text-fill-color: var(--success); background: var(--success-bg); }
+.invite-status--expirado { color: var(--muted); -webkit-text-fill-color: var(--muted); background: var(--brown-100); }
+.invite-status--cancelado, .invite-status--desconhecido { color: var(--danger); -webkit-text-fill-color: var(--danger); background: #f8e8e5; }
+.invite-card__details { margin: 0; }
+.invite-card__details div { display: grid; grid-template-columns: 86px minmax(0, 1fr); gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.invite-card__details dt { color: var(--muted); -webkit-text-fill-color: var(--muted); font-size: 11px; }
+.invite-card__details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--ink); -webkit-text-fill-color: var(--ink); font-size: 12px; font-weight: 700; }
+.button--danger { width: 100%; color: var(--white); -webkit-text-fill-color: var(--white); background: var(--danger); }
+.invite-card__cancel { margin-top: 14px; }
+.cancel-confirmation { padding: 4px 0; color: var(--ink); }
+.cancel-confirmation h3 { margin: 0 0 10px; color: var(--brown-900); -webkit-text-fill-color: var(--brown-900); font-size: 20px; }
+.cancel-confirmation > p { color: var(--muted); -webkit-text-fill-color: var(--muted); font-size: 14px; line-height: 1.6; }
+.confirmation-actions { display: grid; gap: 10px; margin-top: 20px; }
 .qr-placeholder { display: grid; min-height: 180px; margin: 18px 0 14px; place-content: center; justify-items: center; border: 2px dashed #d4c3b4; border-radius: 18px; color: var(--brown-600); background: var(--cream); }
 .manager-qr-empty { display: grid; place-content: center; justify-items: center; }
 .manager-qr-empty span { margin-bottom: 7px; font-size: 48px; }

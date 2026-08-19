@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#6f4a2f">
   <title>BeeLivre Ponto</title>
   <link rel="preconnect" href="https://script.google.com">
-  <link rel="stylesheet" href="styles.css?v=20260820-3">
+  <link rel="stylesheet" href="styles.css?v=20260820-4">
 </head>
 <body>
   <main class="app-shell">
@@ -198,7 +198,10 @@
           <span class="role-pill">ADMIN</span>
         </div>
         <p class="helper">Convide uma pessoa para criar a própria senha e acessar o BeeLivre Ponto.</p>
-        <button id="openInviteModalButton" class="button button--secondary" type="button">+ Convidar usuário</button>
+        <div class="admin-actions">
+          <button id="openInviteModalButton" class="button button--secondary" type="button">+ Convidar usuário</button>
+          <button id="manageInvitesButton" class="button button--secondary" type="button">Gerenciar convites</button>
+        </div>
       </section>
     </section>
   </main>
@@ -246,6 +249,38 @@
     </section>
   </div>
 
-  <script src="app.js?v=20260820-3" defer></script>
+  <div id="manageInvitesModal" class="modal" hidden>
+    <div class="modal__backdrop" data-close-manage-invites></div>
+    <section class="modal__content modal__content--light invites-manager" role="dialog" aria-modal="true" aria-labelledby="manageInvitesTitle">
+      <div class="modal__header">
+        <div><p class="eyebrow">Administração</p><h2 id="manageInvitesTitle">Gerenciar convites</h2></div>
+        <button id="closeManageInvitesButton" class="icon-button icon-button--light" type="button" aria-label="Fechar gerenciamento de convites">×</button>
+      </div>
+
+      <div id="invitesManagerContent">
+        <div id="inviteFilters" class="invite-filters" role="group" aria-label="Filtrar convites">
+          <button class="invite-filter" type="button" data-invite-filter="todos">Todos <span data-filter-count="todos">(0)</span></button>
+          <button class="invite-filter is-active" type="button" data-invite-filter="pendente">Pendentes <span data-filter-count="pendente">(0)</span></button>
+          <button class="invite-filter" type="button" data-invite-filter="usado">Usados <span data-filter-count="usado">(0)</span></button>
+          <button class="invite-filter" type="button" data-invite-filter="expirado">Expirados <span data-filter-count="expirado">(0)</span></button>
+          <button class="invite-filter" type="button" data-invite-filter="cancelado">Cancelados <span data-filter-count="cancelado">(0)</span></button>
+        </div>
+        <p id="invitesMessage" class="message" role="status" aria-live="polite"></p>
+        <div id="invitesList" class="invites-list"></div>
+      </div>
+
+      <div id="cancelInviteConfirmation" class="cancel-confirmation" hidden>
+        <h3>Cancelar este convite?</h3>
+        <p>O link deixará de funcionar e o registro será mantido no histórico.</p>
+        <div class="confirmation-actions">
+          <button id="backFromCancelInviteButton" class="button button--secondary" type="button">Voltar</button>
+          <button id="confirmCancelInviteButton" class="button button--danger" type="button">Cancelar convite</button>
+        </div>
+        <p id="cancelInviteMessage" class="message" role="status" aria-live="polite"></p>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js?v=20260820-4" defer></script>
 </body>
 </html>
