@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#6f4a2f">
   <title>BeeLivre Ponto</title>
   <link rel="preconnect" href="https://script.google.com">
-  <link rel="stylesheet" href="styles.css?v=20260820-2">
+  <link rel="stylesheet" href="styles.css?v=20260820-3">
 </head>
 <body>
   <main class="app-shell">
@@ -223,15 +223,15 @@
     <div class="modal__backdrop" data-close-invite></div>
     <section class="modal__content modal__content--light" role="dialog" aria-modal="true" aria-labelledby="createInviteTitle">
       <div class="modal__header">
-        <div><p class="eyebrow">Administração</p><h2 id="createInviteTitle" class="invite-modal-title">Convidar usuário</h2></div>
+        <div><p class="eyebrow">Administração</p><h2 id="createInviteTitle" class="invite-modal-title" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 22px !important; font-weight: 800 !important; line-height: 1.25 !important; position: relative !important; z-index: 20 !important;">Convidar usuário</h2></div>
         <button id="closeInviteModal" class="icon-button icon-button--light" type="button" aria-label="Fechar">×</button>
       </div>
       <form id="createInviteForm">
-        <div class="field"><label class="invite-field-label" for="newUserName">Nome</label><input id="newUserName" name="nome" type="text" autocomplete="name" required></div>
-        <div class="field"><label class="invite-field-label" for="newUserLogin">Usuário</label><input id="newUserLogin" name="usuario" type="text" autocomplete="off" required></div>
-        <div class="field"><label class="invite-field-label" for="newUserEmail">Email</label><input id="newUserEmail" name="email" type="email" autocomplete="email" required></div>
-        <div class="field"><label class="invite-field-label" for="newUserProfile">Perfil</label><select id="newUserProfile" name="perfil" required><option value="FUNCIONARIO">FUNCIONARIO</option><option value="RESPONSAVEL">RESPONSAVEL</option><option value="ADMIN">ADMIN</option></select></div>
-        <label class="checkbox-field"><input id="sendInviteEmail" type="checkbox" checked><span class="invite-checkbox-text">Enviar convite por e-mail</span></label>
+        <div class="field"><label class="invite-field-label" for="newUserName" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Nome</label><input id="newUserName" name="nome" type="text" autocomplete="name" required></div>
+        <div class="field"><label class="invite-field-label" for="newUserLogin" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Usuário</label><input id="newUserLogin" name="usuario" type="text" autocomplete="off" required></div>
+        <div class="field"><label class="invite-field-label" for="newUserEmail" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Email</label><input id="newUserEmail" name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label class="invite-field-label" for="newUserProfile" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Perfil</label><select id="newUserProfile" name="perfil" required><option value="FUNCIONARIO">FUNCIONARIO</option><option value="RESPONSAVEL">RESPONSAVEL</option><option value="ADMIN">ADMIN</option></select></div>
+        <label class="checkbox-field"><input id="sendInviteEmail" type="checkbox" checked><span class="invite-checkbox-text" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: inline !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; position: relative !important; z-index: 20 !important;">Enviar convite por e-mail</span></label>
         <button id="createInviteButton" class="button button--primary" type="submit">Criar convite</button>
       </form>
       <div id="inviteResult" hidden>
@@ -246,6 +246,6 @@
     </section>
   </div>
 
-  <script src="app.js" defer></script>
+  <script src="app.js?v=20260820-3" defer></script>
 </body>
 </html>
