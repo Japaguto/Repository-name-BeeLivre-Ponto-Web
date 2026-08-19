@@ -186,10 +186,12 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
 .result-title { color: var(--success); font-weight: 800; }
 .invite-link { overflow-wrap: anywhere; padding: 10px; border-radius: 10px; color: var(--muted); background: var(--white); font-size: 11px; }
 #inviteModal .modal__content--light { color: var(--white); background: var(--brown-900); }
-#inviteModal .modal__header h2 { color: var(--white); }
+#inviteModal .invite-modal-title { position: relative; z-index: 1; color: var(--white); -webkit-text-fill-color: var(--white); opacity: 1; visibility: visible; }
 #inviteModal .modal__header .eyebrow { color: #d7bea9; }
 #inviteModal .icon-button--light { color: var(--white); background: rgba(255, 255, 255, .12); }
-#inviteModal .field label, #inviteModal .checkbox-field { color: var(--white); }
+#inviteModal .invite-field-label { position: relative; z-index: 1; display: block; color: var(--white); -webkit-text-fill-color: var(--white); opacity: 1; visibility: visible; }
+#inviteModal .invite-checkbox-text { position: relative; z-index: 1; display: inline; color: var(--white); -webkit-text-fill-color: var(--white); opacity: 1; visibility: visible; }
+#inviteModal .checkbox-field { color: var(--white); -webkit-text-fill-color: var(--white); opacity: 1; visibility: visible; }
 #inviteModal .field input, #inviteModal .field select { color: var(--ink); background: var(--white); }
 #inviteModal .field input:focus, #inviteModal .field select:focus { border-color: #d7bea9; box-shadow: 0 0 0 3px rgba(215, 190, 169, .28); }
 #inviteModal .checkbox-field input { accent-color: #d7bea9; }
