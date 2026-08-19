@@ -26,15 +26,67 @@
         </div>
 
         <div class="field">
-          <label for="pin">PIN</label>
-          <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="Digite seu PIN" required>
+          <label for="pin">Senha</label>
+          <input id="pin" name="pin" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
         </div>
 
         <button id="loginButton" class="button button--primary" type="submit">Entrar</button>
+        <button id="forgotPasswordButton" class="button button--link" type="button">Esqueci minha senha</button>
         <p id="loginMessage" class="message" role="status" aria-live="polite"></p>
       </form>
 
       <p class="privacy-note">Seus dados são enviados com segurança para validação pelo sistema.</p>
+    </section>
+
+    <section id="forgotPasswordView" class="auth-view" hidden aria-labelledby="forgotPasswordTitle">
+      <div class="brand brand--login">
+        <span class="brand__mark" aria-hidden="true">B</span>
+        <div><p class="eyebrow">BeeLivre Ponto</p><h1 id="forgotPasswordTitle">Redefinir senha</h1></div>
+      </div>
+      <form id="forgotPasswordForm" class="card login-card">
+        <div class="field">
+          <label for="recoveryEmail">Email</label>
+          <input id="recoveryEmail" name="email" type="email" autocomplete="email" placeholder="Digite seu email" required>
+        </div>
+        <button id="sendRecoveryButton" class="button button--primary" type="submit">Enviar link</button>
+        <button id="backToLoginFromRecovery" class="button button--link" type="button">Voltar para login</button>
+        <p id="forgotPasswordMessage" class="message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section id="inviteView" class="auth-view" hidden aria-labelledby="inviteTitle">
+      <div class="brand brand--login">
+        <span class="brand__mark" aria-hidden="true">B</span>
+        <div><p class="eyebrow">BeeLivre Ponto</p><h1 id="inviteTitle">Crie sua conta</h1></div>
+      </div>
+      <div class="card login-card">
+        <dl id="inviteInfo" class="account-info" hidden>
+          <div><dt>Nome</dt><dd id="inviteName"></dd></div>
+          <div><dt>Usuário</dt><dd id="inviteUser"></dd></div>
+          <div><dt>Perfil</dt><dd id="inviteProfile"></dd></div>
+        </dl>
+        <form id="acceptInviteForm" hidden>
+          <div class="field"><label for="invitePassword">Criar senha</label><input id="invitePassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+          <div class="field"><label for="inviteConfirmation">Confirmar senha</label><input id="inviteConfirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+          <button id="acceptInviteButton" class="button button--primary" type="submit">Criar minha conta</button>
+        </form>
+        <p id="inviteMessage" class="message" role="status" aria-live="polite">Validando convite...</p>
+        <button id="inviteToLoginButton" class="button button--secondary auth-final-action" type="button" hidden>Ir para o login</button>
+      </div>
+    </section>
+
+    <section id="resetPasswordView" class="auth-view" hidden aria-labelledby="resetPasswordTitle">
+      <div class="brand brand--login">
+        <span class="brand__mark" aria-hidden="true">B</span>
+        <div><p class="eyebrow">BeeLivre Ponto</p><h1 id="resetPasswordTitle">Criar nova senha</h1></div>
+      </div>
+      <form id="resetPasswordForm" class="card login-card">
+        <div class="field"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+        <div class="field"><label for="newPasswordConfirmation">Confirmar nova senha</label><input id="newPasswordConfirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+        <button id="resetPasswordButton" class="button button--primary" type="submit">Salvar nova senha</button>
+        <p id="resetPasswordMessage" class="message" role="status" aria-live="polite"></p>
+        <button id="resetToLoginButton" class="button button--secondary auth-final-action" type="button" hidden>Ir para o login</button>
+      </form>
     </section>
 
     <section id="dashboardView" class="dashboard" hidden aria-label="Painel do funcionário">
@@ -139,6 +191,15 @@
           <div><dt>Expira às</dt><dd id="managerQrExpires">—</dd></div>
         </dl>
       </section>
+
+      <section id="adminUsersArea" class="card manager-card" aria-labelledby="adminUsersTitle" hidden>
+        <div class="section-heading">
+          <div><p class="eyebrow">Administração</p><h2 id="adminUsersTitle">Usuários</h2></div>
+          <span class="role-pill">ADMIN</span>
+        </div>
+        <p class="helper">Convide uma pessoa para criar a própria senha e acessar o BeeLivre Ponto.</p>
+        <button id="openInviteModalButton" class="button button--secondary" type="button">+ Convidar usuário</button>
+      </section>
     </section>
   </main>
 
@@ -155,6 +216,33 @@
         <div class="scan-guide" aria-hidden="true"></div>
       </div>
       <p id="cameraStatus" class="message message--light" role="status" aria-live="polite">Preparando câmera…</p>
+    </section>
+  </div>
+
+  <div id="inviteModal" class="modal" hidden>
+    <div class="modal__backdrop" data-close-invite></div>
+    <section class="modal__content modal__content--light" role="dialog" aria-modal="true" aria-labelledby="createInviteTitle">
+      <div class="modal__header">
+        <div><p class="eyebrow">Administração</p><h2 id="createInviteTitle">Convidar usuário</h2></div>
+        <button id="closeInviteModal" class="icon-button icon-button--light" type="button" aria-label="Fechar">×</button>
+      </div>
+      <form id="createInviteForm">
+        <div class="field"><label for="newUserName">Nome</label><input id="newUserName" name="nome" type="text" autocomplete="name" required></div>
+        <div class="field"><label for="newUserLogin">Usuário</label><input id="newUserLogin" name="usuario" type="text" autocomplete="off" required></div>
+        <div class="field"><label for="newUserEmail">Email</label><input id="newUserEmail" name="email" type="email" autocomplete="email" required></div>
+        <div class="field"><label for="newUserProfile">Perfil</label><select id="newUserProfile" name="perfil" required><option value="FUNCIONARIO">FUNCIONARIO</option><option value="RESPONSAVEL">RESPONSAVEL</option><option value="ADMIN">ADMIN</option></select></div>
+        <label class="checkbox-field"><input id="sendInviteEmail" type="checkbox" checked> Enviar convite por e-mail</label>
+        <button id="createInviteButton" class="button button--primary" type="submit">Criar convite</button>
+      </form>
+      <div id="inviteResult" hidden>
+        <p class="result-title">Convite criado com sucesso.</p>
+        <dl class="account-info"><div><dt>Usuário</dt><dd id="createdInviteUser"></dd></div><div><dt>Email</dt><dd id="createdInviteEmail"></dd></div><div><dt>Perfil</dt><dd id="createdInviteProfile"></dd></div><div><dt>Validade</dt><dd id="createdInviteExpiration"></dd></div></dl>
+        <p id="inviteEmailStatus" class="message is-success"></p>
+        <p id="inviteLink" class="invite-link" hidden></p>
+        <button id="copyInviteLinkButton" class="button button--secondary" type="button">Copiar link do convite</button>
+        <button id="finishInviteButton" class="button button--link" type="button">Fechar</button>
+      </div>
+      <p id="createInviteMessage" class="message" role="status" aria-live="polite"></p>
     </section>
   </div>
 

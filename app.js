@@ -5,6 +5,31 @@ const loginInput = document.getElementById("login");
 const pinInput = document.getElementById("pin");
 const loginButton = document.getElementById("loginButton");
 const loginMessage = document.getElementById("loginMessage");
+const forgotPasswordButton = document.getElementById("forgotPasswordButton");
+const forgotPasswordView = document.getElementById("forgotPasswordView");
+const forgotPasswordForm = document.getElementById("forgotPasswordForm");
+const recoveryEmail = document.getElementById("recoveryEmail");
+const sendRecoveryButton = document.getElementById("sendRecoveryButton");
+const backToLoginFromRecovery = document.getElementById("backToLoginFromRecovery");
+const forgotPasswordMessage = document.getElementById("forgotPasswordMessage");
+const inviteView = document.getElementById("inviteView");
+const inviteInfo = document.getElementById("inviteInfo");
+const inviteName = document.getElementById("inviteName");
+const inviteUser = document.getElementById("inviteUser");
+const inviteProfile = document.getElementById("inviteProfile");
+const acceptInviteForm = document.getElementById("acceptInviteForm");
+const invitePassword = document.getElementById("invitePassword");
+const inviteConfirmation = document.getElementById("inviteConfirmation");
+const acceptInviteButton = document.getElementById("acceptInviteButton");
+const inviteMessage = document.getElementById("inviteMessage");
+const inviteToLoginButton = document.getElementById("inviteToLoginButton");
+const resetPasswordView = document.getElementById("resetPasswordView");
+const resetPasswordForm = document.getElementById("resetPasswordForm");
+const newPassword = document.getElementById("newPassword");
+const newPasswordConfirmation = document.getElementById("newPasswordConfirmation");
+const resetPasswordButton = document.getElementById("resetPasswordButton");
+const resetPasswordMessage = document.getElementById("resetPasswordMessage");
+const resetToLoginButton = document.getElementById("resetToLoginButton");
 const logoutButton = document.getElementById("logoutButton");
 const userName = document.getElementById("userName");
 const userProfile = document.getElementById("userProfile");
@@ -38,6 +63,23 @@ const managerQrEmpty = document.getElementById("managerQrEmpty");
 const managerQrMeta = document.getElementById("managerQrMeta");
 const managerQrCreated = document.getElementById("managerQrCreated");
 const managerQrExpires = document.getElementById("managerQrExpires");
+const adminUsersArea = document.getElementById("adminUsersArea");
+const openInviteModalButton = document.getElementById("openInviteModalButton");
+const inviteModal = document.getElementById("inviteModal");
+const closeInviteModal = document.getElementById("closeInviteModal");
+const createInviteForm = document.getElementById("createInviteForm");
+const createInviteButton = document.getElementById("createInviteButton");
+const sendInviteEmail = document.getElementById("sendInviteEmail");
+const inviteResult = document.getElementById("inviteResult");
+const createdInviteUser = document.getElementById("createdInviteUser");
+const createdInviteEmail = document.getElementById("createdInviteEmail");
+const createdInviteProfile = document.getElementById("createdInviteProfile");
+const createdInviteExpiration = document.getElementById("createdInviteExpiration");
+const inviteEmailStatus = document.getElementById("inviteEmailStatus");
+const inviteLink = document.getElementById("inviteLink");
+const copyInviteLinkButton = document.getElementById("copyInviteLinkButton");
+const finishInviteButton = document.getElementById("finishInviteButton");
+const createInviteMessage = document.getElementById("createInviteMessage");
 
 const API_URL = "https://script.google.com/macros/s/AKfycbywRC0bJFYrUJdHwS1_7CdwoOO2Eso7Ad6wqAghowdxUhbFGdY6W5roi4l-N18V0rua_Q/exec";
 const TOKEN_KEY = "beelivre_ponto_token";
@@ -54,6 +96,38 @@ let isAuthenticating = false;
 let isRegistering = false;
 let dashboardRequestId = 0;
 let qrExpirationTimer = null;
+let inviteToken = null;
+let recoveryToken = null;
+let acceptedInviteUser = "";
+let currentInviteLink = null;
+let isAcceptingInvite = false;
+let isRequestingRecovery = false;
+let isResettingPassword = false;
+let isCreatingInvite = false;
+
+const publicViews = [loginView, forgotPasswordView, inviteView, resetPasswordView];
+
+function showOnlyPublicView(view) {
+  stopScanner();
+  dashboardView.hidden = true;
+  publicViews.forEach((item) => { item.hidden = item !== view; });
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function removeSensitiveQueryParameters() {
+  const url = new URL(window.location.href);
+  const foundInvite = url.searchParams.get("convite");
+  const foundRecovery = url.searchParams.get("redefinir");
+  if (!foundInvite && !foundRecovery) return { flow: "session", token: null };
+  url.searchParams.delete("convite");
+  url.searchParams.delete("redefinir");
+  history.replaceState(history.state, "", `${url.pathname}${url.search}${url.hash}`);
+  return foundInvite
+    ? { flow: "invite", token: foundInvite }
+    : { flow: "recovery", token: foundRecovery };
+}
+
+let initialFlow = removeSensitiveQueryParameters();
 
 function loadScriptOnce(url, expectedGlobal) {
   if (window[expectedGlobal]) return Promise.resolve(window[expectedGlobal]);
@@ -95,12 +169,15 @@ function applyUser(usuario) {
   userName.textContent = nome;
   userProfile.textContent = perfil ? `Perfil: ${perfil}` : "";
   managerArea.hidden = perfil !== "ADMIN" && perfil !== "RESPONSAVEL";
+  adminUsersArea.hidden = perfil !== "ADMIN";
 }
 
 function clearUser() {
   userName.textContent = "";
   userProfile.textContent = "";
   managerArea.hidden = true;
+  adminUsersArea.hidden = true;
+  closeCreateInvite();
   clearManagerQr();
 }
 
@@ -302,17 +379,14 @@ function renderDashboard(result) {
 
 function showDashboard(usuario) {
   applyUser(usuario);
-  loginView.hidden = true;
+  publicViews.forEach((view) => { view.hidden = true; });
   dashboardView.hidden = false;
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function showLogin() {
-  stopScanner();
   clearUser();
-  dashboardView.hidden = true;
-  loginView.hidden = false;
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  showOnlyPublicView(loginView);
 }
 
 function setLoginLoading(isLoading) {
@@ -320,6 +394,154 @@ function setLoginLoading(isLoading) {
   loginButton.disabled = isLoading;
   loginButton.textContent = isLoading ? "Entrando..." : "Entrar";
 }
+
+function goToLogin(prefillUser = "") {
+  inviteToken = null;
+  recoveryToken = null;
+  acceptedInviteUser = "";
+  acceptInviteForm.reset();
+  resetPasswordForm.reset();
+  if (prefillUser) loginInput.value = prefillUser;
+  showLogin();
+}
+
+forgotPasswordButton.addEventListener("click", () => {
+  forgotPasswordForm.reset();
+  forgotPasswordMessage.textContent = "";
+  forgotPasswordMessage.className = "message";
+  showOnlyPublicView(forgotPasswordView);
+});
+
+backToLoginFromRecovery.addEventListener("click", () => goToLogin());
+
+forgotPasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (isRequestingRecovery) return;
+  isRequestingRecovery = true;
+  sendRecoveryButton.disabled = true;
+  sendRecoveryButton.textContent = "Enviando...";
+  forgotPasswordMessage.className = "message";
+  forgotPasswordMessage.textContent = "Enviando link...";
+  try {
+    const result = await postToApi("senha_solicitar", { email: recoveryEmail.value });
+    const message = typeof result?.message === "string" ? result.message : result?.error;
+    forgotPasswordMessage.className = result?.ok ? "message is-success" : "message is-error";
+    forgotPasswordMessage.textContent = typeof message === "string" ? message : NETWORK_ERROR_MESSAGE;
+  } catch {
+    forgotPasswordMessage.className = "message is-error";
+    forgotPasswordMessage.textContent = NETWORK_ERROR_MESSAGE;
+  } finally {
+    isRequestingRecovery = false;
+    sendRecoveryButton.disabled = false;
+    sendRecoveryButton.textContent = "Enviar link";
+  }
+});
+
+async function startInviteFlow(token) {
+  inviteToken = token;
+  inviteInfo.hidden = true;
+  acceptInviteForm.hidden = true;
+  inviteToLoginButton.hidden = true;
+  inviteMessage.className = "message";
+  inviteMessage.textContent = "Validando convite...";
+  showOnlyPublicView(inviteView);
+  try {
+    const result = await postToApi("convite_info", { tokenConvite: token });
+    if (inviteToken !== token) return;
+    if (!result?.ok) {
+      inviteMessage.className = "message is-error";
+      inviteMessage.textContent = typeof result?.error === "string" ? result.error : "Convite inválido.";
+      return;
+    }
+    const info = result.convite || result;
+    inviteName.textContent = valueOrDash(info.nome);
+    inviteUser.textContent = valueOrDash(info.usuario);
+    inviteProfile.textContent = valueOrDash(info.perfil);
+    acceptedInviteUser = typeof info.usuario === "string" ? info.usuario : "";
+    inviteInfo.hidden = false;
+    acceptInviteForm.hidden = false;
+    inviteMessage.textContent = "";
+  } catch {
+    if (inviteToken !== token) return;
+    inviteMessage.className = "message is-error";
+    inviteMessage.textContent = NETWORK_ERROR_MESSAGE;
+  }
+}
+
+acceptInviteForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (isAcceptingInvite || !inviteToken) return;
+  isAcceptingInvite = true;
+  acceptInviteButton.disabled = true;
+  acceptInviteButton.textContent = "Criando sua conta...";
+  inviteMessage.className = "message";
+  inviteMessage.textContent = "Criando sua conta...";
+  const token = inviteToken;
+  try {
+    const result = await postToApi("convite_aceitar", { tokenConvite: token, senha: invitePassword.value, confirmacao: inviteConfirmation.value });
+    if (inviteToken !== token) return;
+    if (!result?.ok) {
+      inviteMessage.className = "message is-error";
+      inviteMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível criar a conta.";
+      return;
+    }
+    inviteToken = null;
+    invitePassword.value = "";
+    inviteConfirmation.value = "";
+    acceptInviteForm.hidden = true;
+    inviteMessage.className = "message is-success";
+    inviteMessage.textContent = "Conta criada com sucesso.";
+    inviteToLoginButton.hidden = false;
+  } catch {
+    inviteMessage.className = "message is-error";
+    inviteMessage.textContent = NETWORK_ERROR_MESSAGE;
+  } finally {
+    isAcceptingInvite = false;
+    acceptInviteButton.disabled = false;
+    acceptInviteButton.textContent = "Criar minha conta";
+  }
+});
+
+inviteToLoginButton.addEventListener("click", () => goToLogin(acceptedInviteUser));
+
+resetPasswordForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (isResettingPassword || !recoveryToken) return;
+  isResettingPassword = true;
+  resetPasswordButton.disabled = true;
+  resetPasswordButton.textContent = "Alterando senha...";
+  resetPasswordMessage.className = "message";
+  resetPasswordMessage.textContent = "Alterando senha...";
+  const token = recoveryToken;
+  try {
+    const result = await postToApi("senha_redefinir", { tokenRecuperacao: token, novaSenha: newPassword.value, confirmacao: newPasswordConfirmation.value });
+    if (recoveryToken !== token) return;
+    if (!result?.ok) {
+      resetPasswordMessage.className = "message is-error";
+      resetPasswordMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível alterar a senha.";
+      return;
+    }
+    recoveryToken = null;
+    resetPasswordForm.reset();
+    resetPasswordButton.hidden = true;
+    resetPasswordMessage.className = "message is-success";
+    resetPasswordMessage.textContent = "Senha alterada com sucesso.";
+    resetToLoginButton.hidden = false;
+  } catch {
+    resetPasswordMessage.className = "message is-error";
+    resetPasswordMessage.textContent = NETWORK_ERROR_MESSAGE;
+  } finally {
+    isResettingPassword = false;
+    resetPasswordButton.disabled = false;
+    resetPasswordButton.textContent = "Salvar nova senha";
+  }
+});
+
+resetToLoginButton.addEventListener("click", () => {
+  resetPasswordButton.hidden = false;
+  resetToLoginButton.hidden = true;
+  goToLogin();
+});
 
 loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -597,6 +819,101 @@ readQrButton.addEventListener("click", openScanner);
 closeScannerButton.addEventListener("click", stopScanner);
 scannerModal.querySelector("[data-close-scanner]").addEventListener("click", stopScanner);
 
+function closeCreateInvite() {
+  currentInviteLink = null;
+  inviteLink.textContent = "";
+  inviteLink.hidden = true;
+  inviteModal.hidden = true;
+  if (scannerModal.hidden) document.body.classList.remove("modal-open");
+}
+
+function openCreateInvite() {
+  createInviteForm.reset();
+  sendInviteEmail.checked = true;
+  createInviteForm.hidden = false;
+  inviteResult.hidden = true;
+  createInviteMessage.textContent = "";
+  createInviteMessage.className = "message";
+  currentInviteLink = null;
+  inviteModal.hidden = false;
+  document.body.classList.add("modal-open");
+}
+
+openInviteModalButton.addEventListener("click", openCreateInvite);
+closeInviteModal.addEventListener("click", closeCreateInvite);
+inviteModal.querySelector("[data-close-invite]").addEventListener("click", closeCreateInvite);
+finishInviteButton.addEventListener("click", closeCreateInvite);
+
+createInviteForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (isCreatingInvite) return;
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    closeCreateInvite();
+    expireSession();
+    return;
+  }
+  isCreatingInvite = true;
+  createInviteButton.disabled = true;
+  createInviteButton.textContent = "Criando convite...";
+  createInviteMessage.className = "message";
+  createInviteMessage.textContent = "Criando convite...";
+  const data = new FormData(createInviteForm);
+  try {
+    const result = await postToApi("convite_criar", {
+      token,
+      nome: data.get("nome"),
+      usuario: data.get("usuario"),
+      email: data.get("email"),
+      perfil: data.get("perfil"),
+      enviarEmail: sendInviteEmail.checked ? "true" : "false"
+    });
+    if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
+    if (isInvalidSession(result)) {
+      closeCreateInvite();
+      expireSession();
+      return;
+    }
+    if (!result?.ok) {
+      createInviteMessage.className = "message is-error";
+      createInviteMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível criar o convite.";
+      return;
+    }
+    const convite = result.convite || result;
+    createdInviteUser.textContent = valueOrDash(convite.usuario);
+    createdInviteEmail.textContent = valueOrDash(convite.email);
+    createdInviteProfile.textContent = valueOrDash(convite.perfil);
+    createdInviteExpiration.textContent = valueOrDash(convite.expiraEm);
+    inviteEmailStatus.textContent = sendInviteEmail.checked ? "Convite enviado por e-mail." : "";
+    currentInviteLink = typeof convite.linkConvite === "string" ? convite.linkConvite : (typeof result.linkConvite === "string" ? result.linkConvite : null);
+    copyInviteLinkButton.hidden = !currentInviteLink;
+    createInviteForm.hidden = true;
+    inviteResult.hidden = false;
+    createInviteMessage.textContent = "";
+  } catch {
+    createInviteMessage.className = "message is-error";
+    createInviteMessage.textContent = NETWORK_ERROR_MESSAGE;
+  } finally {
+    isCreatingInvite = false;
+    createInviteButton.disabled = false;
+    createInviteButton.textContent = "Criar convite";
+  }
+});
+
+copyInviteLinkButton.addEventListener("click", async () => {
+  if (!currentInviteLink) return;
+  try {
+    await navigator.clipboard.writeText(currentInviteLink);
+    createInviteMessage.className = "message is-success";
+    createInviteMessage.textContent = "Link copiado.";
+  } catch {
+    inviteLink.textContent = currentInviteLink;
+    inviteLink.hidden = false;
+    createInviteMessage.className = "message is-error";
+    createInviteMessage.textContent = "Não foi possível copiar automaticamente. Copie o link exibido.";
+  }
+});
+
 generateQrButton.addEventListener("click", async () => {
   const token = sessionStorage.getItem(TOKEN_KEY);
   if (!token) {
@@ -665,8 +982,30 @@ generateQrButton.addEventListener("click", async () => {
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && !scannerModal.hidden) stopScanner();
+  if (event.key === "Escape" && !inviteModal.hidden) closeCreateInvite();
 });
 
 window.addEventListener("pagehide", stopScannerStream);
 
-restoreSession();
+async function initializeApp() {
+  if (initialFlow.flow === "invite") {
+    const token = initialFlow.token;
+    initialFlow = { flow: "handled", token: null };
+    await startInviteFlow(token);
+    return;
+  }
+  if (initialFlow.flow === "recovery") {
+    recoveryToken = initialFlow.token;
+    initialFlow = { flow: "handled", token: null };
+    resetPasswordForm.reset();
+    resetPasswordButton.hidden = false;
+    resetToLoginButton.hidden = true;
+    resetPasswordMessage.textContent = "";
+    showOnlyPublicView(resetPasswordView);
+    return;
+  }
+  showLogin();
+  await restoreSession();
+}
+
+initializeApp();
