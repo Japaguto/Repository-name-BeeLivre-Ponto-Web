@@ -15,9 +15,10 @@ const forgotPasswordMessage = document.getElementById("forgotPasswordMessage");
 const inviteView = document.getElementById("inviteView");
 const inviteInfo = document.getElementById("inviteInfo");
 const inviteName = document.getElementById("inviteName");
-const inviteUser = document.getElementById("inviteUser");
+const inviteEmail = document.getElementById("inviteEmail");
 const inviteProfile = document.getElementById("inviteProfile");
 const acceptInviteForm = document.getElementById("acceptInviteForm");
+const inviteUsername = document.getElementById("inviteUsername");
 const invitePassword = document.getElementById("invitePassword");
 const inviteConfirmation = document.getElementById("inviteConfirmation");
 const acceptInviteButton = document.getElementById("acceptInviteButton");
@@ -471,9 +472,9 @@ async function startInviteFlow(token) {
     }
     const info = result.convite || result;
     inviteName.textContent = valueOrDash(info.nome);
-    inviteUser.textContent = valueOrDash(info.usuario);
+    inviteEmail.textContent = valueOrDash(info.email);
     inviteProfile.textContent = valueOrDash(info.perfil);
-    acceptedInviteUser = typeof info.usuario === "string" ? info.usuario : "";
+    acceptedInviteUser = "";
     inviteInfo.hidden = false;
     acceptInviteForm.hidden = false;
     inviteMessage.textContent = "";
@@ -493,8 +494,14 @@ acceptInviteForm.addEventListener("submit", async (event) => {
   inviteMessage.className = "message";
   inviteMessage.textContent = "Criando sua conta...";
   const token = inviteToken;
+  const chosenUsername = inviteUsername.value.trim();
   try {
-    const result = await postToApi("convite_aceitar", { tokenConvite: token, senha: invitePassword.value, confirmacao: inviteConfirmation.value });
+    const result = await postToApi("convite_aceitar", {
+      tokenConvite: token,
+      usuario: chosenUsername,
+      senha: invitePassword.value,
+      confirmacao: inviteConfirmation.value
+    });
     if (inviteToken !== token) return;
     if (!result?.ok) {
       inviteMessage.className = "message is-error";
@@ -502,6 +509,7 @@ acceptInviteForm.addEventListener("submit", async (event) => {
       return;
     }
     inviteToken = null;
+    acceptedInviteUser = chosenUsername;
     invitePassword.value = "";
     inviteConfirmation.value = "";
     acceptInviteForm.hidden = true;

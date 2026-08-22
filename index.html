@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#6f4a2f">
   <title>BeeLivre Ponto</title>
   <link rel="preconnect" href="https://script.google.com">
-  <link rel="stylesheet" href="styles.css?v=20260822-1">
+  <link rel="stylesheet" href="styles.css?v=20260822-2">
 </head>
 <body>
   <main class="app-shell">
@@ -21,8 +21,8 @@
 
       <form id="loginForm" class="card login-card">
         <div class="field">
-          <label for="login">Login</label>
-          <input id="login" name="login" type="text" autocomplete="username" placeholder="Digite seu login" required>
+          <label for="login">Usuário ou e-mail</label>
+          <input id="login" name="login" type="text" autocomplete="username" placeholder="Digite seu usuário ou e-mail" required>
         </div>
 
         <div class="field">
@@ -62,12 +62,13 @@
       <div class="card login-card">
         <dl id="inviteInfo" class="account-info" hidden>
           <div><dt>Nome</dt><dd id="inviteName"></dd></div>
-          <div><dt>Usuário</dt><dd id="inviteUser"></dd></div>
+          <div><dt>E-mail</dt><dd id="inviteEmail"></dd></div>
           <div><dt>Perfil</dt><dd id="inviteProfile"></dd></div>
         </dl>
         <form id="acceptInviteForm" hidden>
-          <div class="field"><label for="invitePassword">Criar senha</label><input id="invitePassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
-          <div class="field"><label for="inviteConfirmation">Confirmar senha</label><input id="inviteConfirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+          <div class="field"><label for="inviteUsername">Usuário</label><input id="inviteUsername" type="text" autocomplete="username" placeholder="Escolha seu usuário" required></div>
+          <div class="field"><label for="invitePassword">Senha</label><input id="invitePassword" type="password" autocomplete="new-password" minlength="4" maxlength="128" required></div>
+          <div class="field"><label for="inviteConfirmation">Confirmar senha</label><input id="inviteConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="128" required></div>
           <button id="acceptInviteButton" class="button button--primary" type="submit">Criar minha conta</button>
         </form>
         <p id="inviteMessage" class="message" role="status" aria-live="polite">Validando convite...</p>
@@ -81,8 +82,8 @@
         <div><p class="eyebrow">BeeLivre Ponto</p><h1 id="resetPasswordTitle">Criar nova senha</h1></div>
       </div>
       <form id="resetPasswordForm" class="card login-card">
-        <div class="field"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
-        <div class="field"><label for="newPasswordConfirmation">Confirmar nova senha</label><input id="newPasswordConfirmation" type="password" autocomplete="new-password" minlength="8" maxlength="128" required></div>
+        <div class="field"><label for="newPassword">Nova senha</label><input id="newPassword" type="password" autocomplete="new-password" minlength="4" maxlength="128" required></div>
+        <div class="field"><label for="newPasswordConfirmation">Confirmar nova senha</label><input id="newPasswordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="128" required></div>
         <button id="resetPasswordButton" class="button button--primary" type="submit">Salvar nova senha</button>
         <p id="resetPasswordMessage" class="message" role="status" aria-live="polite"></p>
         <button id="resetToLoginButton" class="button button--secondary auth-final-action" type="button" hidden>Ir para o login</button>
@@ -273,6 +274,6 @@
     </section>
   </div>
 
-  <script src="app.js?v=20260822-1" defer></script>
+  <script src="app.js?v=20260822-2" defer></script>
 </body>
 </html>
