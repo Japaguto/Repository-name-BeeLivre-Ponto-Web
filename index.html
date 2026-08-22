@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#6f4a2f">
   <title>BeeLivre Ponto</title>
   <link rel="preconnect" href="https://script.google.com">
-  <link rel="stylesheet" href="styles.css?v=20260820-4">
+  <link rel="stylesheet" href="styles.css?v=20260822-1">
 </head>
 <body>
   <main class="app-shell">
@@ -199,7 +199,7 @@
         </div>
         <p class="helper">Convide uma pessoa para criar a própria senha e acessar o BeeLivre Ponto.</p>
         <div class="admin-actions">
-          <button id="openInviteModalButton" class="button button--secondary" type="button">+ Convidar usuário</button>
+          <button id="openInviteModalButton" class="button button--secondary" type="button">+ Convidar funcionários</button>
           <button id="manageInvitesButton" class="button button--secondary" type="button">Gerenciar convites</button>
         </div>
       </section>
@@ -224,28 +224,20 @@
 
   <div id="inviteModal" class="modal" hidden>
     <div class="modal__backdrop" data-close-invite></div>
-    <section class="modal__content modal__content--light" role="dialog" aria-modal="true" aria-labelledby="createInviteTitle">
+    <section class="modal__content modal__content--light employee-invites" role="dialog" aria-modal="true" aria-labelledby="createInviteTitle">
       <div class="modal__header">
-        <div><p class="eyebrow">Administração</p><h2 id="createInviteTitle" class="invite-modal-title" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 22px !important; font-weight: 800 !important; line-height: 1.25 !important; position: relative !important; z-index: 20 !important;">Convidar usuário</h2></div>
+        <div><p class="eyebrow">Administração</p><h2 id="createInviteTitle" class="invite-modal-title" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 22px !important; font-weight: 800 !important; line-height: 1.25 !important; position: relative !important; z-index: 20 !important;">Convidar funcionários</h2></div>
         <button id="closeInviteModal" class="icon-button icon-button--light" type="button" aria-label="Fechar">×</button>
       </div>
-      <form id="createInviteForm">
-        <div class="field"><label class="invite-field-label" for="newUserName" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Nome</label><input id="newUserName" name="nome" type="text" autocomplete="name" required></div>
-        <div class="field"><label class="invite-field-label" for="newUserLogin" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Usuário</label><input id="newUserLogin" name="usuario" type="text" autocomplete="off" required></div>
-        <div class="field"><label class="invite-field-label" for="newUserEmail" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Email</label><input id="newUserEmail" name="email" type="email" autocomplete="email" required></div>
-        <div class="field"><label class="invite-field-label" for="newUserProfile" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: block !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; margin-bottom: 7px !important; position: relative !important; z-index: 20 !important;">Perfil</label><select id="newUserProfile" name="perfil" required><option value="FUNCIONARIO">FUNCIONARIO</option><option value="RESPONSAVEL">RESPONSAVEL</option><option value="ADMIN">ADMIN</option></select></div>
-        <label class="checkbox-field"><input id="sendInviteEmail" type="checkbox" checked><span class="invite-checkbox-text" style="color: #ffffff !important; -webkit-text-fill-color: #ffffff !important; opacity: 1 !important; visibility: visible !important; display: inline !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4 !important; position: relative !important; z-index: 20 !important;">Enviar convite por e-mail</span></label>
-        <button id="createInviteButton" class="button button--primary" type="submit">Criar convite</button>
-      </form>
-      <div id="inviteResult" hidden>
-        <p class="result-title">Convite criado com sucesso.</p>
-        <dl class="account-info"><div><dt>Usuário</dt><dd id="createdInviteUser"></dd></div><div><dt>Email</dt><dd id="createdInviteEmail"></dd></div><div><dt>Perfil</dt><dd id="createdInviteProfile"></dd></div><div><dt>Validade</dt><dd id="createdInviteExpiration"></dd></div></dl>
-        <p id="inviteEmailStatus" class="message is-success"></p>
-        <p id="inviteLink" class="invite-link" hidden></p>
-        <button id="copyInviteLinkButton" class="button button--secondary" type="button">Copiar link do convite</button>
-        <button id="finishInviteButton" class="button button--link" type="button">Fechar</button>
+      <p class="employee-invites__intro">Fonte oficial: Cadastro. As contas serão vinculadas pelo ID do funcionário.</p>
+      <div class="employee-invite-actions">
+        <button id="selectAllEligibleButton" class="button button--secondary" type="button">Selecionar elegíveis</button>
+        <button id="createEmployeeInvitesButton" class="button button--primary" type="button">Criar e copiar links</button>
+        <button id="sendEmployeeInvitesButton" class="button button--primary" type="button">Enviar selecionados</button>
       </div>
-      <p id="createInviteMessage" class="message" role="status" aria-live="polite"></p>
+      <p id="employeeInvitesMessage" class="message" role="status" aria-live="polite"></p>
+      <div id="eligibleEmployeesList" class="eligible-employees-list"></div>
+      <div id="employeeInviteResults" class="employee-invite-results" hidden></div>
     </section>
   </div>
 
@@ -281,6 +273,6 @@
     </section>
   </div>
 
-  <script src="app.js?v=20260820-4" defer></script>
+  <script src="app.js?v=20260822-1" defer></script>
 </body>
 </html>

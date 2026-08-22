@@ -67,19 +67,12 @@ const adminUsersArea = document.getElementById("adminUsersArea");
 const openInviteModalButton = document.getElementById("openInviteModalButton");
 const inviteModal = document.getElementById("inviteModal");
 const closeInviteModal = document.getElementById("closeInviteModal");
-const createInviteForm = document.getElementById("createInviteForm");
-const createInviteButton = document.getElementById("createInviteButton");
-const sendInviteEmail = document.getElementById("sendInviteEmail");
-const inviteResult = document.getElementById("inviteResult");
-const createdInviteUser = document.getElementById("createdInviteUser");
-const createdInviteEmail = document.getElementById("createdInviteEmail");
-const createdInviteProfile = document.getElementById("createdInviteProfile");
-const createdInviteExpiration = document.getElementById("createdInviteExpiration");
-const inviteEmailStatus = document.getElementById("inviteEmailStatus");
-const inviteLink = document.getElementById("inviteLink");
-const copyInviteLinkButton = document.getElementById("copyInviteLinkButton");
-const finishInviteButton = document.getElementById("finishInviteButton");
-const createInviteMessage = document.getElementById("createInviteMessage");
+const selectAllEligibleButton = document.getElementById("selectAllEligibleButton");
+const createEmployeeInvitesButton = document.getElementById("createEmployeeInvitesButton");
+const sendEmployeeInvitesButton = document.getElementById("sendEmployeeInvitesButton");
+const employeeInvitesMessage = document.getElementById("employeeInvitesMessage");
+const eligibleEmployeesList = document.getElementById("eligibleEmployeesList");
+const employeeInviteResults = document.getElementById("employeeInviteResults");
 const manageInvitesButton = document.getElementById("manageInvitesButton");
 const manageInvitesModal = document.getElementById("manageInvitesModal");
 const closeManageInvitesButton = document.getElementById("closeManageInvitesButton");
@@ -111,17 +104,19 @@ let qrExpirationTimer = null;
 let inviteToken = null;
 let recoveryToken = null;
 let acceptedInviteUser = "";
-let currentInviteLink = null;
 let isAcceptingInvite = false;
 let isRequestingRecovery = false;
 let isResettingPassword = false;
-let isCreatingInvite = false;
+let isLoadingEligibleEmployees = false;
+let isCreatingEmployeeInvites = false;
+let eligibleEmployees = [];
 let currentUserProfile = "";
 let loadedInvites = [];
 let activeInviteFilter = "pendente";
 let pendingCancelInviteId = null;
 let isLoadingInvites = false;
 let isCancellingInvite = false;
+let isResendingInvite = false;
 
 const publicViews = [loginView, forgotPasswordView, inviteView, resetPasswordView];
 
@@ -841,102 +836,224 @@ closeScannerButton.addEventListener("click", stopScanner);
 scannerModal.querySelector("[data-close-scanner]").addEventListener("click", stopScanner);
 
 function closeCreateInvite() {
-  currentInviteLink = null;
-  inviteLink.textContent = "";
-  inviteLink.hidden = true;
+  if (isCreatingEmployeeInvites) return;
+  eligibleEmployees = [];
+  eligibleEmployeesList.replaceChildren();
+  employeeInviteResults.replaceChildren();
+  employeeInviteResults.hidden = true;
   inviteModal.hidden = true;
-  if (scannerModal.hidden) document.body.classList.remove("modal-open");
+  if (scannerModal.hidden && manageInvitesModal.hidden) document.body.classList.remove("modal-open");
 }
 
 function openCreateInvite() {
-  createInviteForm.reset();
-  sendInviteEmail.checked = true;
-  createInviteForm.hidden = false;
-  inviteResult.hidden = true;
-  createInviteMessage.textContent = "";
-  createInviteMessage.className = "message";
-  currentInviteLink = null;
+  if (currentUserProfile !== "ADMIN") return;
+  eligibleEmployees = [];
+  employeeInviteResults.replaceChildren();
+  employeeInviteResults.hidden = true;
+  employeeInvitesMessage.textContent = "";
+  employeeInvitesMessage.className = "message";
   inviteModal.hidden = false;
   document.body.classList.add("modal-open");
+  loadEligibleEmployees();
 }
 
 openInviteModalButton.addEventListener("click", openCreateInvite);
-closeInviteModal.addEventListener("click", closeCreateInvite);
-inviteModal.querySelector("[data-close-invite]").addEventListener("click", closeCreateInvite);
-finishInviteButton.addEventListener("click", closeCreateInvite);
+closeInviteModal.addEventListener("click", () => closeCreateInvite());
+inviteModal.querySelector("[data-close-invite]").addEventListener("click", () => closeCreateInvite());
 
-createInviteForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (isCreatingInvite) return;
+function createEmployeeInfo(label, value) {
+  const item = document.createElement("span");
+  item.textContent = `${label}: ${valueOrDash(value)}`;
+  return item;
+}
+
+function renderEligibleEmployees() {
+  eligibleEmployeesList.replaceChildren();
+  if (eligibleEmployees.length === 0) {
+    eligibleEmployeesList.append(createEmptyState("◇", "Nenhum funcionário encontrado no Cadastro."));
+    return;
+  }
+  eligibleEmployees.forEach((employee) => {
+    const label = document.createElement("label");
+    const checkbox = document.createElement("input");
+    const content = document.createElement("span");
+    const name = document.createElement("strong");
+    const details = document.createElement("span");
+    const status = document.createElement("span");
+    label.className = `eligible-employee${employee?.elegivel ? "" : " is-disabled"}`;
+    checkbox.type = "checkbox";
+    checkbox.className = "eligible-employee__checkbox";
+    checkbox.value = String(employee?.id || "");
+    checkbox.disabled = !employee?.elegivel || !checkbox.value;
+    content.className = "eligible-employee__content";
+    name.textContent = valueOrDash(employee?.nomeCompleto || employee?.nome);
+    details.className = "eligible-employee__details";
+    details.append(
+      createEmployeeInfo("Email", employee?.email || "Não cadastrado"),
+      createEmployeeInfo("Nível", employee?.nivel),
+      createEmployeeInfo("Transporte/dia", employee?.transporteDia)
+    );
+    status.className = `eligible-employee__status${employee?.elegivel ? " is-eligible" : ""}`;
+    status.textContent = valueOrDash(employee?.situacao);
+    content.append(name, details, status);
+    label.append(checkbox, content);
+    eligibleEmployeesList.append(label);
+  });
+}
+
+async function loadEligibleEmployees(preserveResults = false) {
+  if (isLoadingEligibleEmployees) return;
   const token = sessionStorage.getItem(TOKEN_KEY);
   if (!token) {
     closeCreateInvite();
     expireSession();
     return;
   }
-  isCreatingInvite = true;
-  createInviteButton.disabled = true;
-  createInviteButton.textContent = "Criando convite...";
-  createInviteMessage.className = "message";
-  createInviteMessage.textContent = "Criando convite...";
-  const data = new FormData(createInviteForm);
+  isLoadingEligibleEmployees = true;
+  if (!preserveResults) {
+    employeeInvitesMessage.className = "message";
+    employeeInvitesMessage.textContent = "Carregando funcionários...";
+  }
+  eligibleEmployeesList.replaceChildren();
+  if (!preserveResults) {
+    employeeInviteResults.replaceChildren();
+    employeeInviteResults.hidden = true;
+  }
   try {
-    const result = await postToApi("convite_criar", {
-      token,
-      nome: data.get("nome"),
-      usuario: data.get("usuario"),
-      email: data.get("email"),
-      perfil: data.get("perfil"),
-      enviarEmail: sendInviteEmail.checked ? "true" : "false"
-    });
+    const result = await postToApi("funcionarios_convites_listar", { token });
     if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
     if (isInvalidSession(result)) {
       closeCreateInvite();
       expireSession();
       return;
     }
-    if (!result?.ok) {
-      createInviteMessage.className = "message is-error";
-      createInviteMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível criar o convite.";
+    if (!result?.ok || !Array.isArray(result.funcionarios)) {
+      employeeInvitesMessage.className = "message is-error";
+      employeeInvitesMessage.textContent = "Não foi possível carregar os funcionários.";
       return;
     }
-    const convite = result.convite || result;
-    createdInviteUser.textContent = valueOrDash(convite.usuario);
-    createdInviteEmail.textContent = valueOrDash(convite.email);
-    createdInviteProfile.textContent = valueOrDash(convite.perfil);
-    createdInviteExpiration.textContent = valueOrDash(convite.expiraEm);
-    inviteEmailStatus.textContent = sendInviteEmail.checked ? "Convite enviado por e-mail." : "";
-    currentInviteLink = typeof convite.linkConvite === "string" ? convite.linkConvite : (typeof result.linkConvite === "string" ? result.linkConvite : null);
-    copyInviteLinkButton.hidden = !currentInviteLink;
-    createInviteForm.hidden = true;
-    inviteResult.hidden = false;
-    createInviteMessage.textContent = "";
+    eligibleEmployees = result.funcionarios;
+    renderEligibleEmployees();
+    if (!preserveResults) employeeInvitesMessage.textContent = "";
   } catch {
-    createInviteMessage.className = "message is-error";
-    createInviteMessage.textContent = NETWORK_ERROR_MESSAGE;
+    employeeInvitesMessage.className = "message is-error";
+    employeeInvitesMessage.textContent = "Não foi possível carregar os funcionários.";
   } finally {
-    isCreatingInvite = false;
-    createInviteButton.disabled = false;
-    createInviteButton.textContent = "Criar convite";
+    isLoadingEligibleEmployees = false;
   }
-});
+}
 
-copyInviteLinkButton.addEventListener("click", async () => {
-  if (!currentInviteLink) return;
-  try {
-    await navigator.clipboard.writeText(currentInviteLink);
-    createInviteMessage.className = "message is-success";
-    createInviteMessage.textContent = "Link copiado.";
-  } catch {
-    inviteLink.textContent = currentInviteLink;
-    inviteLink.hidden = false;
-    createInviteMessage.className = "message is-error";
-    createInviteMessage.textContent = "Não foi possível copiar automaticamente. Copie o link exibido.";
+function selectedEmployeeIds() {
+  return Array.from(eligibleEmployeesList.querySelectorAll(".eligible-employee__checkbox:checked"), (checkbox) => checkbox.value);
+}
+
+function renderEmployeeInviteResults(results, emailRequested) {
+  employeeInviteResults.replaceChildren();
+  const title = document.createElement("h3");
+  title.textContent = "Resultado dos convites";
+  employeeInviteResults.append(title);
+  results.forEach((result) => {
+    const card = document.createElement("article");
+    const name = document.createElement("strong");
+    const status = document.createElement("span");
+    name.textContent = valueOrDash(result?.nome || result?.funcionarioId);
+    status.textContent = valueOrDash(result?.status);
+    card.append(name, status);
+    if (typeof result?.linkConvite === "string" && result.linkConvite) {
+      const link = document.createElement("span");
+      link.className = "employee-invite-result__link";
+      link.textContent = result.linkConvite;
+      card.append(link);
+    }
+    if (emailRequested && result?.emailEnviado) {
+      const sent = document.createElement("span");
+      sent.textContent = "Enviado por e-mail.";
+      card.append(sent);
+    }
+    employeeInviteResults.append(card);
+  });
+  employeeInviteResults.hidden = false;
+}
+
+async function createEmployeeInvites(sendEmail) {
+  if (isCreatingEmployeeInvites) return;
+  const ids = selectedEmployeeIds();
+  if (ids.length === 0) {
+    employeeInvitesMessage.className = "message is-error";
+    employeeInvitesMessage.textContent = "Selecione ao menos um funcionário elegível.";
+    return;
   }
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    closeCreateInvite();
+    expireSession();
+    return;
+  }
+  isCreatingEmployeeInvites = true;
+  createEmployeeInvitesButton.disabled = true;
+  sendEmployeeInvitesButton.disabled = true;
+  selectAllEligibleButton.disabled = true;
+  const activeButton = sendEmail ? sendEmployeeInvitesButton : createEmployeeInvitesButton;
+  const originalText = activeButton.textContent;
+  activeButton.textContent = sendEmail ? "Enviando..." : "Criando...";
+  employeeInvitesMessage.className = "message";
+  employeeInvitesMessage.textContent = sendEmail ? "Criando e enviando convites..." : "Criando convites...";
+  try {
+    const result = await postToApi("funcionarios_convites_criar", {
+      token,
+      idsFuncionarios: JSON.stringify(ids),
+      enviarEmail: sendEmail ? "true" : "false"
+    });
+    if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
+    if (isInvalidSession(result)) {
+      isCreatingEmployeeInvites = false;
+      closeCreateInvite();
+      expireSession();
+      return;
+    }
+    if (!result?.ok || !Array.isArray(result.resultados)) {
+      employeeInvitesMessage.className = "message is-error";
+      employeeInvitesMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível criar os convites.";
+      return;
+    }
+    renderEmployeeInviteResults(result.resultados, sendEmail);
+    const links = result.resultados.map((item) => typeof item?.linkConvite === "string" ? item.linkConvite : "").filter(Boolean);
+    let copied = false;
+    if (!sendEmail && links.length > 0 && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(links.join("\n"));
+        copied = true;
+      } catch {
+        copied = false;
+      }
+    }
+    employeeInvitesMessage.className = "message is-success";
+    employeeInvitesMessage.textContent = sendEmail
+      ? "Processamento concluído. Confira o resultado abaixo."
+      : copied ? "Convites criados e links copiados." : "Convites criados. Copie os links exibidos abaixo.";
+    await loadEligibleEmployees(true);
+  } catch {
+    employeeInvitesMessage.className = "message is-error";
+    employeeInvitesMessage.textContent = NETWORK_ERROR_MESSAGE;
+  } finally {
+    isCreatingEmployeeInvites = false;
+    createEmployeeInvitesButton.disabled = false;
+    sendEmployeeInvitesButton.disabled = false;
+    selectAllEligibleButton.disabled = false;
+    activeButton.textContent = originalText;
+  }
+}
+
+selectAllEligibleButton.addEventListener("click", () => {
+  eligibleEmployeesList.querySelectorAll(".eligible-employee__checkbox:not(:disabled)").forEach((checkbox) => {
+    checkbox.checked = true;
+  });
 });
+createEmployeeInvitesButton.addEventListener("click", () => createEmployeeInvites(false));
+sendEmployeeInvitesButton.addEventListener("click", () => createEmployeeInvites(true));
 
 function closeInvitesManager(force = false) {
-  if (isCancellingInvite && !force) return;
+  if ((isCancellingInvite || isResendingInvite) && !force) return;
   pendingCancelInviteId = null;
   loadedInvites = [];
   invitesList.replaceChildren();
@@ -1030,12 +1147,23 @@ function renderInvites() {
     card.append(header, details);
 
     if (status === "pendente" && invite?.id !== null && invite?.id !== undefined && String(invite.id).trim() !== "") {
+      const actions = document.createElement("div");
       const cancelButton = document.createElement("button");
       cancelButton.className = "button button--danger invite-card__cancel";
       cancelButton.type = "button";
       cancelButton.dataset.cancelInviteId = String(invite.id);
       cancelButton.textContent = "Cancelar convite";
-      card.append(cancelButton);
+      actions.className = "invite-card__actions";
+      actions.append(cancelButton);
+      if (typeof invite?.funcionarioId === "string" && invite.funcionarioId.trim()) {
+        const resendButton = document.createElement("button");
+        resendButton.className = "button button--secondary invite-card__resend";
+        resendButton.type = "button";
+        resendButton.dataset.resendInviteId = String(invite.id);
+        resendButton.textContent = "Reenviar convite";
+        actions.append(resendButton);
+      }
+      card.append(actions);
     }
     invitesList.append(card);
   });
@@ -1124,6 +1252,50 @@ invitesList.addEventListener("click", (event) => {
   const button = event.target.closest("[data-cancel-invite-id]");
   if (!button) return;
   showCancelInviteConfirmation(button.dataset.cancelInviteId);
+});
+
+invitesList.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-resend-invite-id]");
+  if (!button || isResendingInvite) return;
+  const token = sessionStorage.getItem(TOKEN_KEY);
+  if (!token) {
+    closeInvitesManager();
+    expireSession();
+    return;
+  }
+  isResendingInvite = true;
+  button.disabled = true;
+  button.textContent = "Reenviando...";
+  invitesMessage.className = "message";
+  invitesMessage.textContent = "Reenviando convite...";
+  try {
+    const result = await postToApi("funcionario_convite_reenviar", {
+      token,
+      conviteId: button.dataset.resendInviteId,
+      enviarEmail: "true"
+    });
+    if (sessionStorage.getItem(TOKEN_KEY) !== token) return;
+    if (isInvalidSession(result)) {
+      closeInvitesManager();
+      expireSession();
+      return;
+    }
+    if (!result?.ok) {
+      invitesMessage.className = "message is-error";
+      invitesMessage.textContent = typeof result?.error === "string" ? result.error : "Não foi possível reenviar o convite.";
+      return;
+    }
+    await loadInvites("Convite reenviado com sucesso.");
+  } catch {
+    invitesMessage.className = "message is-error";
+    invitesMessage.textContent = "Não foi possível reenviar o convite.";
+  } finally {
+    isResendingInvite = false;
+    if (button.isConnected) {
+      button.disabled = false;
+      button.textContent = "Reenviar convite";
+    }
+  }
 });
 
 confirmCancelInviteButton.addEventListener("click", async () => {

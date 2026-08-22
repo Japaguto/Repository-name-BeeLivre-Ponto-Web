@@ -201,6 +201,25 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
 #inviteModal .account-info div { border-bottom-color: rgba(255, 255, 255, .16); }
 #inviteModal .result-title { color: #bde8ce; }
 #inviteModal .button--link { color: #f1dfd0; }
+.employee-invites { overflow-x: hidden; overflow-y: auto; max-height: 92vh; }
+.employee-invites__intro { color: #f1dfd0; -webkit-text-fill-color: #f1dfd0; font-size: 13px; line-height: 1.5; }
+.employee-invite-actions { display: grid; gap: 10px; margin-bottom: 8px; }
+.eligible-employees-list { display: grid; gap: 10px; margin-top: 14px; }
+.eligible-employee { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 11px; align-items: flex-start; padding: 14px; border: 1px solid rgba(255, 255, 255, .2); border-radius: 15px; color: var(--ink); background: var(--white); }
+.eligible-employee.is-disabled { opacity: .7; }
+.eligible-employee__checkbox { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--brown-700); }
+.eligible-employee__content { display: grid; min-width: 0; gap: 7px; }
+.eligible-employee__content strong { overflow-wrap: anywhere; color: var(--brown-900); -webkit-text-fill-color: var(--brown-900); font-size: 15px; }
+.eligible-employee__details { display: grid; gap: 3px; }
+.eligible-employee__details span { overflow-wrap: anywhere; color: var(--muted); -webkit-text-fill-color: var(--muted); font-size: 11px; }
+.eligible-employee__status { width: fit-content; max-width: 100%; padding: 5px 8px; border-radius: 999px; overflow-wrap: anywhere; color: var(--danger); -webkit-text-fill-color: var(--danger); background: #f8e8e5; font-size: 10px; font-weight: 800; }
+.eligible-employee__status.is-eligible { color: var(--success); -webkit-text-fill-color: var(--success); background: var(--success-bg); }
+.employee-invite-results { display: grid; gap: 9px; margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, .18); }
+.employee-invite-results h3 { margin: 0; color: var(--white); -webkit-text-fill-color: var(--white); font-size: 16px; }
+.employee-invite-results article { display: grid; min-width: 0; gap: 5px; padding: 12px; border-radius: 13px; color: var(--ink); background: var(--white); }
+.employee-invite-results strong { overflow-wrap: anywhere; color: var(--brown-900); -webkit-text-fill-color: var(--brown-900); }
+.employee-invite-results span { overflow-wrap: anywhere; color: var(--muted); -webkit-text-fill-color: var(--muted); font-size: 11px; }
+.employee-invite-result__link { user-select: all; }
 .invites-manager { overflow-x: hidden; overflow-y: auto; max-height: 92vh; color: var(--ink); background: var(--cream); }
 .invites-manager .modal__header { margin-bottom: 18px; }
 .invites-manager .modal__header h2 { color: var(--brown-900); -webkit-text-fill-color: var(--brown-900); opacity: 1; visibility: visible; }
@@ -223,7 +242,9 @@ h2 { margin-bottom: 0; color: var(--brown-900); font-size: 21px; }
 .invite-card__details dt { color: var(--muted); -webkit-text-fill-color: var(--muted); font-size: 11px; }
 .invite-card__details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; color: var(--ink); -webkit-text-fill-color: var(--ink); font-size: 12px; font-weight: 700; }
 .button--danger { width: 100%; color: var(--white); -webkit-text-fill-color: var(--white); background: var(--danger); }
-.invite-card__cancel { margin-top: 14px; }
+.invite-card__actions { display: grid; gap: 9px; margin-top: 14px; }
+.invite-card__cancel { margin-top: 0; }
+.invite-card__resend { width: 100%; }
 .cancel-confirmation { padding: 4px 0; color: var(--ink); }
 .cancel-confirmation h3 { margin: 0 0 10px; color: var(--brown-900); -webkit-text-fill-color: var(--brown-900); font-size: 20px; }
 .cancel-confirmation > p { color: var(--muted); -webkit-text-fill-color: var(--muted); font-size: 14px; line-height: 1.6; }
