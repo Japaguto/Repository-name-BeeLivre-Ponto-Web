@@ -592,7 +592,8 @@ loginForm.addEventListener("submit", async (event) => {
     }
 
     sessionStorage.setItem(TOKEN_KEY, result.token);
-    pinInput.value = "";
+    // Mantém os campos disponíveis para o gerenciador de senhas
+    // reconhecer o login bem-sucedido e oferecer o salvamento.
     loginMessage.textContent = "";
     showDashboard(result.usuario);
     if (result.dashboard) {
