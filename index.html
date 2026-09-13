@@ -19,15 +19,15 @@
         </div>
       </div>
 
-      <form id="loginForm" class="card login-card">
+      <form id="loginForm" class="card login-card" autocomplete="on">
         <div class="field">
           <label for="login">Usuário ou e-mail</label>
-          <input id="login" name="login" type="text" autocomplete="username" placeholder="Digite seu usuário ou e-mail" required>
+          <input id="login" name="username" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Digite seu usuário ou e-mail" required>
         </div>
 
         <div class="field">
           <label for="pin">Senha</label>
-          <input id="pin" name="pin" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
+          <input id="pin" name="password" type="password" autocomplete="current-password" placeholder="Digite sua senha" required>
         </div>
 
         <button id="loginButton" class="button button--primary" type="submit">Entrar</button>
